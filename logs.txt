@@ -1,0 +1,9 @@
+(25-06-26)
+
+creating a .venv
+creating requirements.txt -> adding fastapi , uvicorn
+creating backend --> main.py
+learning fastapi from documentation and videos 
+writing basic boilerplate code and creating initial setup for endpoints
+
+
