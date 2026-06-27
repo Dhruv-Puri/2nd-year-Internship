@@ -7,3 +7,18 @@ learning fastapi from documentation and videos
 writing basic boilerplate code and creating initial setup for endpoints
 
 
+(26-06-26)
+
+watched tutorials on deployment , docker and fastapi to get idea on how everything connects
+made few small scripts to understand the working 
+installed git and practiced 
+
+
+(27-06-26)
+
+learnt sqlalchemy and database connection to establish a connection with backend
+creating .env file with database credentials --> currently local only
+created .gitignore file and added both .env and .venv to prevent any accidental commits of sensitive information
+creating database.py --> to get connection from the local postgres server for now 
+creating schema.py --> to create the intial structure for the schema 
+
