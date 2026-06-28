@@ -22,3 +22,9 @@ created .gitignore file and added both .env and .venv to prevent any accidental 
 creating database.py --> to get connection from the local postgres server for now 
 creating schema.py --> to create the intial structure for the schema 
 
+(28-06-26)
+
+learnt pydantic and data validation for databases
+created models.py and created the necessary pydantic models that would be needed in the future
+made some changes in requirements.txt to include libraries that would be used in future
+researched on using HTML/CSS/Javascript for static web hosting of frontend instead of streamlit for better and easier deployement plan in future
