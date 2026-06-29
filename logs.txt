@@ -28,3 +28,11 @@ learnt pydantic and data validation for databases
 created models.py and created the necessary pydantic models that would be needed in the future
 made some changes in requirements.txt to include libraries that would be used in future
 researched on using HTML/CSS/Javascript for static web hosting of frontend instead of streamlit for better and easier deployement plan in future
+
+
+(29-06-26)
+
+created a temporary demo for hosting the application
+explored on how to deploy the file and in what way -> initial plan , hosting on azure via azure static and web app service and sql database 
+hosted a simple demo for the proof of concept with static index.html and a small api application that performs CRUD (worked well)
+created auth.py and added authorization via jwt and hashing the passwords , used the newly added libraries for it.
