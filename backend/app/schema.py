@@ -1,42 +1,43 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, UniqueConstraint
-from sqlalchemy.orm import relationship
+from pydantic import BaseModel, EmailStr
 from datetime import datetime
-from .database import Base
+from typing import Optional, List
 
-class User(Base):
-    __tablename__ = "users"
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
-    role = Column(String, default="STUDENT") # STUDENT, CLUB_ADMIN, COORDINATOR
+# User Schemas
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+    role: Optional[str] = "STUDENT"
 
-class Club(Base):
-    __tablename__ = "clubs"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True, nullable=False)
-    description = Column(String)
-    owner_id = Column(Integer, ForeignKey("users.id"))
+class UserResponse(BaseModel):
+    id: int
+    email: EmailStr
+    role: str
+    class Config:
+        from_attributes = True
 
-class Event(Base):
-    __tablename__ = "events"
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, nullable=False)
-    description = Column(String)
-    event_date = Column(DateTime, nullable=False)
-    club_id = Column(Integer, ForeignKey("clubs.id"))
+class Token(BaseModel):
+    access_token: str
+    token_type: str
 
-class RSVP(Base):
-    __tablename__ = "rsvps"
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    event_id = Column(Integer, ForeignKey("events.id"))
-    status = Column(String, default="PENDING") # PENDING, ATTENDING, CANCELLED
-    __table_args__ = (UniqueConstraint('user_id', 'event_id', name='_user_event_rsvp_uc'),)
+# Club Schemas
+class ClubCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
 
-class Attendance(Base):
-    __tablename__ = "attendance"
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    event_id = Column(Integer, ForeignKey("events.id"))
-    marked_at = Column(DateTime, default=datetime.now)
-    __table_args__ = (UniqueConstraint('user_id', 'event_id', name='_user_event_attn_uc'),)
+class ClubResponse(ClubCreate):
+    id: int
+    owner_id: int
+    class Config:
+        from_attributes = True
+
+# Event Schemas
+class EventCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    event_date: datetime
+    club_id: int
+
+class EventResponse(EventCreate):
+    id: int
+    class Config:
+        from_attributes = True
