@@ -20,12 +20,12 @@ learnt sqlalchemy and database connection to establish a connection with backend
 creating .env file with database credentials --> currently local only
 created .gitignore file and added both .env and .venv to prevent any accidental commits of sensitive information
 creating database.py --> to get connection from the local postgres server for now 
-creating schema.py --> to create the intial structure for the schema 
+creating models.py --> to create the intial structure for the database 
 
 (28-06-26)
 
 learnt pydantic and data validation for databases
-created models.py and created the necessary pydantic models that would be needed in the future
+created schema.py and created the necessary pydantic models that would be needed in the future
 made some changes in requirements.txt to include libraries that would be used in future
 researched on using HTML/CSS/Javascript for static web hosting of frontend instead of streamlit for better and easier deployement plan in future
 
@@ -36,3 +36,12 @@ created a temporary demo for hosting the application
 explored on how to deploy the file and in what way -> initial plan , hosting on azure via azure static and web app service and sql database 
 hosted a simple demo for the proof of concept with static index.html and a small api application that performs CRUD (worked well)
 created auth.py and added authorization via jwt and hashing the passwords , used the newly added libraries for it.
+
+
+(30-06-26)
+
+worked on the main.py , added few endpoints and connected the auth.py for authentication and confirmed with SwaggerUI
+made changes to schema.py as it contained redundant code and finished the confusion between schema and model - schema for pydantic, models for ORM.
+implemented CORS within main.py will use this later for a decoupled application that will communicate with backend
+created initial frontend logic with index.html that will recieve and send request to backend fastapi server and show content 
+made changes to auth.py and requirements
