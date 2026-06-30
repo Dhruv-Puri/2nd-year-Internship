@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventHub Dashboard</title>
+</head>
+<body>
+    <h1>Welcome to EventHub</h1>
+    <button onclick="logout()">Logout</button>
+    
+    <h2>Upcoming Events</h2>
+    <div id="events-container"></div>
+
+    <script>
+        const API_URL = "localhost:8000"; // WILL UPDATE THIS
+
+        async function fetchEvents() {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                window.location.href = "login.html";
+                return;
+            }
+
+            const response = await fetch(`${API_URL}/events`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+
+            if(response.ok) {
+                const events = await response.json();
+                const container = document.getElementById("events-container");
+                events.forEach(event => {
+                    container.innerHTML += `
+                        <div style="border:1px solid black; margin:10px; padding:10px;">
+                            <h3>${event.title}</h3>
+                            <p>${event.description}</p>
+                            <p>Date: ${event.event_date}</p>
+                            <button onclick="rsvp(${event.id})">RSVP Now</button>
+                        </div>
+                    `;
+                });
+            }
+        }
+        function logout() {
+            localStorage.removeItem("token");
+            window.location.href = "login.html";
+        }
+
+        fetchEvents();
+    </script>
+</body>
+</html>
