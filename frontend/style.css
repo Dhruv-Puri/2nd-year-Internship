@@ -1,0 +1,161 @@
+
+/* Base styles */
+:root {
+    --bg-color: #f9fafb;
+    --card-bg: #ffffff;
+    --text-main: #111827;
+    --text-muted: #6b7280;
+    --border-color: #e5e7eb;
+    --input-border: #d1d5db;
+    --primary-color: #111827;
+    --primary-hover: #374151;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    color: var(--text-main);
+    
+    /* --- BACKGROUND GIF SETUP --- */
+    /* The linear-gradient acts as a frosted overlay to keep the GIF subtle */
+    background: linear-gradient(rgba(249, 250, 251, 0.85), rgba(249, 250, 251, 0.85)), 
+                url('https://i.gifer.com/fetch/w300-preview/a1/a1d9b9514fde3d6a4a15998df981329c.gif');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* Card Container */
+.auth-container {
+    background-color: var(--card-bg);
+    width: 100%;
+    max-width: 400px;
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.02);
+    /* Optional: adds a slight blur if your GIF is very busy */
+    backdrop-filter: blur(4px); 
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 32px;
+    position: relative; /* Needed for the sliding indicator */
+    border-bottom: 2px solid var(--border-color);
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 0 0 12px 0;
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.6s ease;
+}
+
+.tab-btn:hover {
+    color: var(--text-main);
+}
+
+.tab-btn.active {
+    color: var(--text-main);
+}
+
+/* The slow sliding pointer */
+.indicator {
+    position: absolute;
+    bottom: -2px;
+    height: 2px;
+    background-color: var(--text-main);
+    /* This controls the speed of the slide */
+    transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1); 
+    border-radius: 2px;
+}
+
+/* Forms */
+.form-view {
+    display: none;
+}
+
+.form-view.active {
+    display: block;
+    /* Slowed down the fade to match the tab slide */
+    animation: slowFade 0.6s ease forwards;
+}
+
+@keyframes slowFade {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--text-main);
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--input-border);
+    border-radius: 8px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    background-color: #fff;
+    transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.1);
+}
+
+/* Action Buttons */
+.submit-btn {
+    width: 100%;
+    padding: 14px;
+    background-color: var(--primary-color);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.4s ease;
+    margin-top: 10px;
+}
+
+.submit-btn:hover {
+    background-color: var(--primary-hover);
+}
+
+.alt-action {
+    display: block;
+    text-align: center;
+    margin-top: 16px;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    text-decoration: none;
+}
+
+.alt-action:hover {
+    color: var(--text-main);
+    text-decoration: underline;
+}
