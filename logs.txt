@@ -45,3 +45,10 @@ made changes to schema.py as it contained redundant code and finished the confus
 implemented CORS within main.py will use this later for a decoupled application that will communicate with backend
 created initial frontend logic with index.html that will recieve and send request to backend fastapi server and show content 
 made changes to auth.py and requirements
+
+
+(1-06-26)
+Took time to recalibrate the architecture and adding the details in the 1st ADR (architecture design record) doc
+watched some tutorials on how to connect the front end to backend and made some design choices on how to host the application
+made a fresh index.html with login and sign up window and created style.css with styling logic make it look fresh with animations 
+added logic for login only right now and will update more later
