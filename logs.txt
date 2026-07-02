@@ -52,3 +52,9 @@ Took time to recalibrate the architecture and adding the details in the 1st ADR 
 watched some tutorials on how to connect the front end to backend and made some design choices on how to host the application
 made a fresh index.html with login and sign up window and created style.css with styling logic make it look fresh with animations 
 added logic for login only right now and will update more later
+
+(2-06-26)
+Updated the .env file and added secret_key , newer algorithm for hashing and database_url for connecting to the database
+made necessary changes to the code according to the .env file and changed the backend logic -> made changes to auth , main and models (adding autoincrement for primary keys)
+succesfully connected the backend to frontend and tested the logic , now the user can create accounts and also log into it , the next step is to create the dashboard
+also added smoother UI design by auto clearing the previous details and also enabled more safer authentication / validation by implementing newer logic to add guardrails and also prevent leakage of sensitive information
