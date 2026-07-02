@@ -40,7 +40,7 @@ def register(user: schema.UserCreate, db: Session = Depends(database.get_db)):
 # Login
 @app.post("/login", response_model=schema.Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
-    user = db.query(models.User).filter(models.User.email == form_data.username).first()
+    user = db.query(models.User).filter(models.User.email == form_data.username).first() # here the username field contains email
     if not user or not auth.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     access_token = auth.create_access_token(data={"sub": str(user.id)})

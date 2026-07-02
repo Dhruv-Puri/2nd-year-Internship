@@ -8,8 +8,16 @@ from .database import get_db
 from . import models
 import os
 
-SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-for-dev")
-ALGORITHM = "HS256"
+SECRET_KEY = os.getenv("SECRET_KEY") # removed the default key
+ALGORITHM = os.getenv("ALGORITHM") # changed the algorithm and removed from here
+
+
+
+# fallback logic if the SECRET_KEY is not initialised in the .env file
+if not SECRET_KEY or not ALGORITHM: 
+    raise ValueError("CRITICAL ERROR: environment variable is not set!")
+
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
