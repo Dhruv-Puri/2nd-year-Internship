@@ -24,8 +24,7 @@ body {
     
     /* --- BACKGROUND GIF SETUP --- */
     /* The linear-gradient acts as a frosted overlay to keep the GIF subtle */
-    background: linear-gradient(rgba(249, 250, 251, 0.85), rgba(249, 250, 251, 0.85)), 
-                url('https://i.gifer.com/fetch/w300-preview/a1/a1d9b9514fde3d6a4a15998df981329c.gif');
+    background: linear-gradient(rgba(249, 250, 251, 0.85), rgba(249, 250, 251, 0.85));
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;

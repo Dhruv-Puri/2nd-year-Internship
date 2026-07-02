@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8">       
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome</title>
     <link rel = "stylesheet" href = "style.css">
@@ -30,8 +30,14 @@
 
         <form id="signup-form" class="form-view" onsubmit="event.preventDefault();">
             <div class="input-group">
-                <label for="signup-name">Full Name</label>
-                <input type="text" id="signup-name" placeholder="Alex Doe" required>
+                <label for="signup-role">Role</label>
+                <input type="text" id="signup-role" list = "Role-options" placeholder="Eg. Student" required>
+                <datalist id="Role-options">
+                    <option value="Student">
+                    <option value="Club Manager">
+                    <option value="Admin">
+                </datalist>
+
             </div>
             <div class="input-group">
                 <label for="signup-email">Email Address</label>
@@ -41,7 +47,7 @@
                 <label for="signup-password">Create Password</label>
                 <input type="password" id="signup-password" placeholder="••••••••" required>
             </div>
-            <button type="submit" class="submit-btn">Create Account</button>
+            <button type="submit" class="submit-btn" onclick = "registerUser()">Create Account</button>
         </form>
     </div>
 
@@ -83,48 +89,108 @@
     //--------------------------------------------------------   
     //---------------- Authentication Logic-------------------  
     //--------------------------------------------------------   
-        const API_URL = "localhost:8000";
+    const API_URL = "http://127.0.0.1:8000";
 
-        async function loginUser(email, password) {
-                const url = `${API_URL}/`;
-                
-                // 1. Prepare data payload
-                const credentials = {
-                    email: document.getElementById("login-email").value,
-                    password: document.getElementById("login-password").value
-                };
-                if(credentials.email != '' && credentials.password != ''){
-                    try {
-                        // 2. Make the POST request
-                        const response = await fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(credentials)
-                        });
-
-                        // 3. Check if response is successful (status 200-299)
-                        if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                        }
-
-                        // 4. Parse JSON server response (e.g., auth tokens)
-                        const result = await response.json();
-                        console.log('Success:', result);
-                        return result;
-
-                    } catch (error) {
-                        alert('Submission failed:', error);
-                    }
-                }
-                else{
-                    alert('Please Enter Details First');
-                }
-         }
-            
+    async function registerUser(){
+        const url = `${API_URL}/register`;
         
-    </script>
+        // 1. Get the values and trim invisible spaces
+        const emailValue = document.getElementById("signup-email").value.trim();
+        const passwordValue = document.getElementById("signup-password").value.trim();
+        const roleValue = document.getElementById("signup-role").value.trim();
+        
+        if(emailValue != '' && passwordValue != '' && roleValue != ''){
+            try {
+                const credentials = {
+                    email: emailValue,       
+                    password: passwordValue,
+                    role: roleValue          
+                };
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json' 
+                    },
+                    body: JSON.stringify(credentials)
+                });
+
+                if (!response.ok) {
+                    // If the error is internal server error 500, it is most likely due to having conflicting primary key as the sqlalchemy wasn't able to add the data to the database 
+                    if (response.status === 500) {
+                        throw new Error("User Already Exists.");
+                    }
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('Registered Successfully:', result);
+                alert('Account created successfully! Please log in.');
+                
+                // --- UI CLEANUP ---
+                // 1. Clear the signup form fields
+                document.getElementById("signup-form").reset();
+                // 2. Automatically switch the UI back to the login tab
+                switchTab({target: document.querySelector('.tab-btn')}, 'login');
+                
+                return result;
+
+            } catch (error) {
+                alert('Registration failed: ' + error);
+            }
+        } else {
+            alert('Please Enter All the Details.');
+        }
+    }
+
+    async function loginUser() {
+        const url = `${API_URL}/login`;
+        
+        // 1. Get the values and trim invisible spaces
+        const emailValue = document.getElementById("login-email").value.trim();
+        const passwordValue = document.getElementById("login-password").value.trim();
+
+        if(emailValue != '' && passwordValue != ''){
+            try {
+                const formData = new URLSearchParams();
+                formData.append("username", emailValue); 
+                formData.append("password", passwordValue);
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    // REMOVED the manual headers object entirely! 
+                    // Fetch will automatically set the correct Form-Data headers for URLSearchParams.
+                    body: formData 
+                });
+
+                if (!response.ok) {
+                    // If it's a 400 error, it's likely bad credentials
+                    if (response.status === 400) {
+                        throw new Error("Incorrect email or password.");
+                    }
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('LoggedIn Successfully:', result);
+                alert('Logged in successfully!');
+                
+                // Optional: Clear the login form after success
+                document.getElementById("login-form").reset();
+                
+                return result;
+
+            } catch (error) {
+                alert('Login failed: ' + error.message);
+            }
+        } 
+        else {
+            alert('Please Enter Details First');
+        }
+    }
+                
+            
+        </script>
 
 </body>
 </html>
