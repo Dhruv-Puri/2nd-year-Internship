@@ -10,7 +10,7 @@ app = FastAPI(title="EventHub API")
 # Enable CORS for Azure Storage Frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, replace "*" with your Azure Storage URL
+    allow_origins=["*"], # In production, we will replace "*" with your Azure Storage URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -46,3 +46,13 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     access_token = auth.create_access_token(data={"sub": str(user.id)})
     return {"access_token": access_token, "token_type": "bearer"}
 
+
+
+
+@app.get("/users/me", response_model=schema.UserResponse)
+def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
+    """
+    This endpoint is protected. 
+    It requires a valid JWT token in the Authorization header.
+    """
+    return current_user
