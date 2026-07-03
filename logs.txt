@@ -58,3 +58,12 @@ Updated the .env file and added secret_key , newer algorithm for hashing and dat
 made necessary changes to the code according to the .env file and changed the backend logic -> made changes to auth , main and models (adding autoincrement for primary keys)
 succesfully connected the backend to frontend and tested the logic , now the user can create accounts and also log into it , the next step is to create the dashboard
 also added smoother UI design by auto clearing the previous details and also enabled more safer authentication / validation by implementing newer logic to add guardrails and also prevent leakage of sensitive information
+
+
+(3-06-26)
+Fixed the login and register logic as when the user used to register and then forwarded to login , the user was able to access the dashboard even when it exited due to jwt token limit
+added methods like window.href.replace() to prevent the history stack and preventing user from going back to login/signup page
+made the logic to store the jwt token fetched from the backend into localStorage (might replace in future with cookies or sessionStorage to make it more secure)
+connected the dashboard to the login logic , created a sample endpoint and also created dashboard.html with logic to logout and delete token from the localStorage
+also made a sample dashboard that will be used as a reference for future to add more features to the application (even tested some future features on HuggingFace)
+
