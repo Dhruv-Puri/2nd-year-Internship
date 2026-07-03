@@ -90,6 +90,7 @@
     //---------------- Authentication Logic-------------------  
     //--------------------------------------------------------   
     const API_URL = "http://127.0.0.1:8000";
+    const TOKEN = {}
 
     async function registerUser(){
         const url = `${API_URL}/register`;
@@ -178,7 +179,19 @@
                 // Optional: Clear the login form after success
                 document.getElementById("login-form").reset();
                 
+
+                // saving the jwt token in session storage 
+                localStorage.setItem("access_token",result.access_token);
+
+                // redirecting the user to dashboard.html
+                window.location.replace("dashboard.html");
+
+
+
+
+                // console.log(result);
                 return result;
+
 
             } catch (error) {
                 alert('Login failed: ' + error.message);

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventHub Dashboard</title>
+    <style>
+        /* Base styles and variables */
+        :root {
+            --bg-color: #f9fafb;
+            --card-bg: #ffffff;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --input-border: #d1d5db;
+            --primary-color: #111827;
+            --primary-hover: #374151;
+            --danger-color: #8e2727;
+            --danger-hover: #cc4848;
+        }
+
+        body {
+            margin: 0;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-main);
+            background: linear-gradient(rgba(249, 250, 251, 0.85), rgba(249, 250, 251, 0.85));
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            min-height: 100vh;
+        }
+
+        /* Container Layouts */
+        .container-max {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--card-bg);
+            padding: 20px 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.02);
+            backdrop-filter: blur(4px);
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--text-main);
+        }
+
+        .header p {
+            margin: 5px 0 0 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .role-badge {
+            background: var(--border-color);
+            color: var(--text-main);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        /* Dashboard Sections */
+        .dashboard-section {
+            display: none;
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.02);
+            backdrop-filter: blur(4px);
+        }
+
+        .dashboard-section.active {
+            display: block;
+            animation: slowFade 0.6s ease forwards;
+        }
+
+        @keyframes slowFade {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dashboard-section h2 {
+            margin-top: 0;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border-color);
+            font-size: 1.25rem;
+        }
+
+        .dashboard-section h3 {
+            font-size: 1.1rem;
+            color: var(--text-main);
+            margin-bottom: 16px;
+        }
+
+        .card {
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 12px;
+            background: var(--bg-color);
+        }
+
+        .flex-row {
+            display: flex; 
+            gap: 24px;
+        }
+        
+        .flex-col {
+            flex: 1;
+        }
+
+        /* Forms and Inputs */
+        input, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            background-color: #fff;
+            transition: border-color 0.4s ease, box-shadow 0.4s ease;
+            margin-bottom: 16px;
+            font-family: inherit;
+            color: var(--text-main);
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        /* Action Buttons */
+        button {
+            padding: 12px 20px;
+            background-color: var(--primary-color);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.4s ease;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        button.logout {
+            background-color: var(--danger-color);
+            padding: 10px 16px;
+        }
+        
+        button.logout:hover {
+            background-color: var(--danger-hover);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .flex-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container-max">
+        <div class="header">
+            <div>
+                <h1>EventHub Dashboard</h1>
+                <p id="user-info">Loading... <span class="role-badge">USER</span></p>
+            </div>
+            <button class="logout" onclick="logout()">Log Out</button>
+        </div>
+
+        <div id="student-view" class="dashboard-section">
+            <h2>Student Portal</h2>
+            
+            <div class="flex-row">
+                <div class="flex-col">
+                    <h3>Browse Upcoming Events</h3>
+                    <div class="card" id="available-events-list">
+                        <p style="color: var(--text-muted); margin: 0;">Loading events...</p>
+                    </div>
+                </div>
+                <div class="flex-col">
+                    <h3>My RSVPs</h3>
+                    <div class="card" id="my-rsvps-list">
+                        <p style="color: var(--text-muted); margin: 0;">No RSVPs yet.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="admin-view" class="dashboard-section">
+            <h2>Club Admin Portal</h2>
+            
+            <div class="flex-row">
+                <div class="flex-col">
+                    <h3>Create New Event</h3>
+                    <form id="create-event-form" onsubmit="event.preventDefault(); alert('Create event logic goes here!');">
+                        <input type="text" placeholder="Event Title" required>
+                        <input type="datetime-local" required>
+                        <textarea placeholder="Event Description"></textarea>
+                        <button type="submit" style="width: 100%;">Publish Event</button>
+                    </form>
+                </div>
+                <div class="flex-col">
+                    <h3>Manage Event Attendance</h3>
+                    <div class="card" id="manage-rsvps-list">
+                        <p style="color: var(--text-muted); margin: 0;">Select an event to view RSVPs and mark attendance.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="coordinator-view" class="dashboard-section">
+            <h2>System Coordinator Portal</h2>
+            
+            <div class="flex-row">
+                <div class="card flex-col">
+                    <h3>Events Per Club</h3>
+                    <div id="report-events" style="color: var(--text-muted);">Generating metrics...</div>
+                </div>
+                <div class="card flex-col">
+                    <h3>Global Attendance Rate</h3>
+                    <div id="report-attendance" style="color: var(--text-muted);">Generating metrics...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+
+        // Security measure: Clear token on window close/refresh
+        window.addEventListener("beforeunload", function (event) {
+            localStorage.removeItem("access_token");
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const token = localStorage.getItem("access_token");
+            if (!token) {
+                window.location.replace("index.html");
+                return;
+            }
+            fetchUserData(token);
+        });
+
+        async function fetchUserData(token) {
+            try {
+                const response = await fetch(`${API_URL}/users/me`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        localStorage.removeItem("access_token");
+                        window.location.replace("index.html");
+                        return;
+                    }
+                    throw new Error("Failed to fetch user data");
+                }
+
+                const userData = await response.json();
+                
+                // 1. Update Header UI
+                document.getElementById("user-info").innerHTML = 
+                    `${userData.email} <span class="role-badge">${userData.role}</span>`;
+
+                // 2. Route the user to the correct UI based on their role
+                routeUserByRole(userData.role, token);
+
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById("user-info").innerText = "Error loading user data.";
+            }
+        }
+
+        // --- Core UI Routing Logic ---
+        function routeUserByRole(role, token) {
+            // First, ensure all sections are hidden
+            document.querySelectorAll('.dashboard-section').forEach(el => el.classList.remove('active'));
+
+            // Format the string to handle uppercase differences (e.g., "STUDENT" or "Student")
+            const normalizedRole = role.toUpperCase();
+
+            // Unhide the specific section and trigger data fetching
+            if (normalizedRole === "STUDENT") {
+                document.getElementById("student-view").classList.add("active");
+                loadStudentData(token);
+            } 
+            else if (normalizedRole === "CLUB_ADMIN" || normalizedRole === "CLUB MANAGER") {
+                document.getElementById("admin-view").classList.add("active");
+                loadAdminData(token);
+            } 
+            else if (normalizedRole === "COORDINATOR" || normalizedRole === "ADMIN") {
+                document.getElementById("coordinator-view").classList.add("active");
+                loadCoordinatorData(token);
+            } 
+            else {
+                alert("Unknown role detected. Please contact support.");
+            }
+        }
+
+        // --- Data Fetching Stubs (Wire these up to your FastAPI backend later) ---
+        function loadStudentData(token) {
+            console.log("Fetching /events for student...");
+            // TODO: Fetch available events and inject them into document.getElementById("available-events-list")
+        }
+
+        function loadAdminData(token) {
+            console.log("Fetching club specific data for admin...");
+            // TODO: Fetch events owned by this admin's club
+        }
+
+        function loadCoordinatorData(token) {
+            console.log("Fetching global reports...");
+            // TODO: Fetch aggregate statistics from backend
+        }
+
+        function logout() {
+            localStorage.removeItem("access_token");
+            window.location.replace("index.html");
+        }
+    </script>
+</body>
+</html>
