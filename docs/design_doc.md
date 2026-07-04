@@ -99,7 +99,7 @@ sequenceDiagram
 
 ```
 
-## 4. Database Schema & Entity Relationships
+## Database Schema & Entity Relationships
 
 The PostgreSQL database enforces relational integrity across all entities. The following Entity-Relationship (ER) diagram maps the cardinality between Users, Clubs, Events, and RSVPs.
 
@@ -147,8 +147,8 @@ erDiagram
 
 ---
 
-### Addition 2: Security & Governance Posture
-## Security & Governance Posture
+## Addition 2: Security & Governance Posture
+### Security & Governance Posture
 
 To ensure platform integrity and data privacy, EventHub implements security at multiple layers:
 
@@ -161,8 +161,8 @@ To ensure platform integrity and data privacy, EventHub implements security at m
 
 ---
 
-### Addition 3: CI/CD Deployment Strategy (DevOps Core)
-## Continuous Integration / Continuous Deployment (CI/CD)
+## Addition 3: CI/CD Deployment Strategy (DevOps Core)
+### Continuous Integration / Continuous Deployment (CI/CD)
 
 As a Cloud & DevOps-focused project, manual deployments will be replaced by automated GitHub Actions pipelines.
 
@@ -190,12 +190,7 @@ graph LR
 2. **Validation:** Runs `pytest` to ensure core CRUD and Auth logic is unbroken.
 3. **Delivery:** If tests pass, GitHub Actions injects the secure `.env` secrets from GitHub Secrets and pushes the compiled artifacts to Azure infrastructure.
 
-```
 
-
-**These three additions make your documentation look like a blueprint for a real startup.** Since your Week 1 deliverables are due today, do you want to finalize this documentation and push it, or do you want to brainstorm the actual HuggingFace RAG Python code you'll need for Week 2?
-
-```
 
 ---
 
