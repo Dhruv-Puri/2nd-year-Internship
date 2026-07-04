@@ -31,32 +31,10 @@
 | **AI/RAG Engine** | HuggingFace Spaces | Dedicated microservice environment to prevent ML inference from blocking core API threads. |
 | **Cloud Hosting** | Azure (App Service + Static Web Apps) | Platform-as-a-Service (PaaS) deployment that cleanly decouples frontend and backend infrastructure. |
 
-#### Also planning to keep the JWT in `localStorage` for the final Azure deployment, or are you considering migrating it to `HttpOnly` cookies for enhanced XSS protection before the final week?
+#### Also planning to keep the JWT in `localStorage` for the final Azure deployment, or are you considering migrating it to `HttpOnly` cookies for enhanced XSS protection before the final week
 ---
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as Club Admin / Student
-    participant UI as Azure Static Web App (Frontend)
-    participant API as Azure App Service (FastAPI)
-    participant DB as Azure PostgreSQL
-    participant HF as HuggingFace Space (RAG)
 
-    Note over User, DB: Standard Event & Auth Flow
-    User->>UI: Interacts with Dashboard (e.g., RSVP)
-    UI->>API: REST API Call (Auth: Bearer JWT)
-    API->>DB: Query/Update Data (SQLAlchemy)
-    DB-->>API: Return DB Confirmation
-    API-->>UI: 200 OK (JSON Response)
-    UI->>User: Update UI State dynamically
+## Note: rest of the details are added in the github issue and doc/design_doc.md)
 
-    Note over User, HF: AI / RAG Query Flow
-    User->>UI: Asks: "What are the rules for this event?"
-    UI->>API: POST /api/v1/events/{id}/query
-    API->>HF: Forward Query (Server-to-Server Proxy)
-    HF->>HF: Vector Search & Gemini Generation
-    HF-->>API: Return AI Answer
-    API-->>UI: 200 OK {answer}
-    UI->>User: Display AI Answer in Dashboard
-```
+
