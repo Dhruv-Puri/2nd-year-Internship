@@ -67,3 +67,10 @@ made the logic to store the jwt token fetched from the backend into localStorage
 connected the dashboard to the login logic , created a sample endpoint and also created dashboard.html with logic to logout and delete token from the localStorage
 also made a sample dashboard that will be used as a reference for future to add more features to the application (even tested some future features on HuggingFace)
 
+(4-06-26)
+Submitted first week deliverables on github 
+opened an issue with all neccessary details asked , created a new README file detaling all the learning and things i did throughout the internship till now
+updated the new design_dox asewll highlighting how would approach both the developement of the application along with the deployment in the near future.
+
+(5-06-26)
+Rest....
