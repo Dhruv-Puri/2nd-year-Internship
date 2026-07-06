@@ -93,7 +93,7 @@
     const TOKEN = {}
 
     async function registerUser(){
-        const url = `${API_URL}/register`;
+        const url = `${API_URL}/api/auth/register`;
         
         // 1. Get the values and trim invisible spaces
         const emailValue = document.getElementById("signup-email").value.trim();
@@ -145,7 +145,7 @@
     }
 
     async function loginUser() {
-        const url = `${API_URL}/login`;
+        const url = `${API_URL}/api/auth/login`;
         
         // 1. Get the values and trim invisible spaces
         const emailValue = document.getElementById("login-email").value.trim();
@@ -181,7 +181,7 @@
                 
 
                 // saving the jwt token in session storage 
-                localStorage.setItem("access_token",result.access_token);
+                localStorage.setItem("token",result.access_token);
 
                 // redirecting the user to dashboard.html
                 window.location.replace("dashboard.html");

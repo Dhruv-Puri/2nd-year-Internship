@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EventHub Dashboard</title>
+
+    <!-- import icons from the external css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"> 
+    
+    
     <style>
         /* Base styles and variables */
         :root {
@@ -17,6 +22,7 @@
             --primary-hover: #374151;
             --danger-color: #8e2727;
             --danger-hover: #cc4848;
+             --primary: #4f46e5; --primary-light: #eef2ff; --bg: #f9fafb; --card: #ffffff; --text: #111827; --muted: #6b7280; --border: #e5e7eb; --success: #10b981; --danger: #ef4444; --sidebar-w: 260px;
         }
 
         body {
@@ -32,38 +38,11 @@
             min-height: 100vh;
         }
 
-        /* Container Layouts */
-        .container-max {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: var(--card-bg);
-            padding: 20px 30px;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.02);
-            backdrop-filter: blur(4px);
-            margin-bottom: 24px;
-        }
+        /* Side Bar */
+        .sidebar { width: var(--sidebar-w); background: var(--card); border-right: 1px solid var(--border); padding: 1.5rem; display: flex; flex-direction: column; position: fixed; height: 100vh; }
 
-        .header h1 {
-            margin: 0;
-            font-size: 1.5rem;
-            color: var(--text-main);
-        }
 
-        .header p {
-            margin: 5px 0 0 0;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
 
         .role-badge {
             background: var(--border-color);
@@ -185,16 +164,23 @@
     </style>
 </head>
 <body>
+    
 
-    <div class="container-max">
-        <div class="header">
-            <div>
-                <h1>EventHub Dashboard</h1>
-                <p id="user-info">Loading... <span class="role-badge">USER</span></p>
-            </div>
-            <button class="logout" onclick="logout()">Log Out</button>
+    <!-- Creating a Side Bar for navigation -->
+    <aside class="sidebar">
+        <div class="logo"><i class="fas fa-calendar-check"></i> EventHub</div>
+        <div class="user-info">
+            <div class="user-role" id="current-role-label">LOADING...</div>
+            <div class="user-email" id="user-email">...</div>
+            <div style="font-weight: 600; margin-top: 0.2rem;" id="user-name">...</div>
         </div>
+        <nav id="sidebar-nav"></nav>
+        <div class="nav-item logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Log Out</div>
+    </aside>
 
+
+
+        <!-- Student Section -->
         <div id="student-view" class="dashboard-section">
             <h2>Student Portal</h2>
             
@@ -213,6 +199,8 @@
                 </div>
             </div>
         </div>
+
+        <!-- Club Admin Section -->
 
         <div id="admin-view" class="dashboard-section">
             <h2>Club Admin Portal</h2>
@@ -236,6 +224,8 @@
             </div>
         </div>
 
+        
+        <!-- Coordinator Section -->
         <div id="coordinator-view" class="dashboard-section">
             <h2>System Coordinator Portal</h2>
             
@@ -254,99 +244,112 @@
 
     <script>
         const API_URL = "http://127.0.0.1:8000";
+        let currentUser = null;
+        let state = {events:[],rsvps:[],clubs:[]};
 
-        // Security measure: Clear token on window close/refresh
+
+        // Clearing token on window close/refresh
         window.addEventListener("beforeunload", function (event) {
-            localStorage.removeItem("access_token");
+            localStorage.removeItem("token");
         });
 
+
+
+
+        // ---------------------- 
+        // Authorization Function
+        // ----------------------
+
+        // Function for calling url but with authorization token to prevent redundancy
+        async function authFetch(url, options = {}) {
+            const token = localStorage.getItem('token');
+            if (!token){window.location.replace("index.html");return;}
+
+
+            options.headers = { ...options.headers, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+            const res = await fetch(API_URL + url, options);
+            if (res.status === 401 || res.status === 403 || res.status === 404) {
+                localStorage.removeItem('token');
+                window.location.replace('index.html');
+
+
+                alert("Unauthorized access");
+                throw new Error('Unauthorized');
+            }
+            return res;
+        }
+
+
+        // -----------------------
+        // Initialisation function
+        // -----------------------
+
+        async function init(){
+            // calling the auth Fetch designed to fetch details by automatically passing the token to prevent redundancy in code
+            const token = localStorage.getItem('token');
+            console.log(token);
+            if (!token){window.location.replace("index.html");return;}
+
+            const res = await authFetch('/api/users/me');
+            currentUser = await res.json();
+            
+
+
+            // if everything was successfull then we can fetch the user details from response attained from the above section  
+            document.getElementById('user-name').innerText = currentUser.name;
+            document.getElementById('user-email').innerText = currentUser.email;
+            document.getElementById('current-role-label').innerText = currentUser.role.toUpperCase();
+            document.getElementById('page-greeting').innerText = `Welcome, ${currentUser.name.split(' ')[0]}`;
+            
+            await Promise.all([fetchEvents(), fetchMyRsvps(), fetchClubs()]);
+            
+
+            // rendering the sidebar and dashboard
+            renderSidebar();
+            renderDashboard(); 
+            
+        }
+
+        // Upon Loading the webpage -
         document.addEventListener("DOMContentLoaded", () => {
-            const token = localStorage.getItem("access_token");
-            if (!token) {
-                window.location.replace("index.html");
-                return;
-            }
-            fetchUserData(token);
+            init();
         });
 
-        async function fetchUserData(token) {
-            try {
-                const response = await fetch(`${API_URL}/users/me`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
 
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        localStorage.removeItem("access_token");
-                        window.location.replace("index.html");
-                        return;
-                    }
-                    throw new Error("Failed to fetch user data");
-                }
+        
+        // -------------------  
+        // Rendering Functions
+        // ------------------- 
+        
+        function renderSidebar() {
+            const nav = document.getElementById('sidebar-nav');
+            let html = `<div class="nav-item active" data-view="portal" onclick="switchView('portal')"><i class="fas fa-home"></i> My Portal</div>`;
 
-                const userData = await response.json();
-                
-                // 1. Update Header UI
-                document.getElementById("user-info").innerHTML = 
-                    `${userData.email} <span class="role-badge">${userData.role}</span>`;
-
-                // 2. Route the user to the correct UI based on their role
-                routeUserByRole(userData.role, token);
-
-            } catch (error) {
-                console.error("Error:", error);
-                document.getElementById("user-info").innerText = "Error loading user data.";
+            // Role-based navigation (Hides student stuff from Admin/Coordinator)
+            // Rendering only neccessary details for each role on the side bar
+            if (currentUser.role === 'student') {
+                html += `
+                    <div class="nav-item" data-view="events" onclick="switchView('events')"><i class="fas fa-calendar"></i> Upcoming Events</div>
+                    <div class="nav-item" data-view="rsvps" onclick="switchView('rsvps')"><i class="fas fa-ticket"></i> My RSVPs</div>
+                    <div class="nav-item" data-view="bot" onclick="switchView('bot')"><i class="fas fa-robot"></i> Ask EventBot</div>
+                `;
+            } else if (currentUser.role === 'admin') {
+                html += `
+                    <div class="nav-item" data-view="admin-publish" onclick="switchView('admin-publish')"><i class="fas fa-plus-circle"></i> Publish Event</div>
+                    <div class="nav-item" data-view="admin-manage" onclick="switchView('admin-manage')"><i class="fas fa-tasks"></i> Manage & Attendance</div>
+                    <div class="nav-item" data-view="admin-stats" onclick="switchView('admin-stats')"><i class="fas fa-chart-bar"></i> Club Stats</div>
+                `;
+            } else if (currentUser.role === 'coordinator') {
+                html += `
+                    <div class="nav-item" data-view="coord-reports" onclick="switchView('coord-reports')"><i class="fas fa-file-alt"></i> Analytics & Reports</div>
+                `;
             }
+            nav.innerHTML = html;
         }
 
-        // --- Core UI Routing Logic ---
-        function routeUserByRole(role, token) {
-            // First, ensure all sections are hidden
-            document.querySelectorAll('.dashboard-section').forEach(el => el.classList.remove('active'));
-
-            // Format the string to handle uppercase differences (e.g., "STUDENT" or "Student")
-            const normalizedRole = role.toUpperCase();
-
-            // Unhide the specific section and trigger data fetching
-            if (normalizedRole === "STUDENT") {
-                document.getElementById("student-view").classList.add("active");
-                loadStudentData(token);
-            } 
-            else if (normalizedRole === "CLUB_ADMIN" || normalizedRole === "CLUB MANAGER") {
-                document.getElementById("admin-view").classList.add("active");
-                loadAdminData(token);
-            } 
-            else if (normalizedRole === "COORDINATOR" || normalizedRole === "ADMIN") {
-                document.getElementById("coordinator-view").classList.add("active");
-                loadCoordinatorData(token);
-            } 
-            else {
-                alert("Unknown role detected. Please contact support.");
-            }
-        }
-
-        // --- Data Fetching Stubs (Wire these up to your FastAPI backend later) ---
-        function loadStudentData(token) {
-            console.log("Fetching /events for student...");
-            // TODO: Fetch available events and inject them into document.getElementById("available-events-list")
-        }
-
-        function loadAdminData(token) {
-            console.log("Fetching club specific data for admin...");
-            // TODO: Fetch events owned by this admin's club
-        }
-
-        function loadCoordinatorData(token) {
-            console.log("Fetching global reports...");
-            // TODO: Fetch aggregate statistics from backend
-        }
 
         function logout() {
-            localStorage.removeItem("access_token");
+            localStorage.removeItem("token");
             window.location.replace("index.html");
         }
     </script>
