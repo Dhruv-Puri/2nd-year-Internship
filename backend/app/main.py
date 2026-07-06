@@ -28,7 +28,7 @@ def send_email_notification(email: str, subject: str, message: str):
 # ENDPOINTS 
 
 # Register User
-@app.post("/register", response_model=schema.UserResponse)
+@app.post("/api/auth/register", response_model=schema.UserResponse)
 def register(user: schema.UserCreate, db: Session = Depends(database.get_db)):
     hashed_password = auth.get_password_hash(user.password)
     db_user = models.User(email=user.email, hashed_password=hashed_password, role=user.role)
@@ -38,7 +38,7 @@ def register(user: schema.UserCreate, db: Session = Depends(database.get_db)):
     return db_user
 
 # Login
-@app.post("/login", response_model=schema.Token)
+@app.post("/api/auth/login", response_model=schema.Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
     user = db.query(models.User).filter(models.User.email == form_data.username).first() # here the username field contains email
     if not user or not auth.verify_password(form_data.password, user.hashed_password):
@@ -49,7 +49,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 
 
-@app.get("/users/me", response_model=schema.UserResponse)
+@app.get("/api/users/me", response_model=schema.UserResponse)
 def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
     """
     This endpoint is protected. 
