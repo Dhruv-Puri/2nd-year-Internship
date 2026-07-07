@@ -4,7 +4,7 @@
     <meta charset="UTF-8">       
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome</title>
-    <link rel = "stylesheet" href = "style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -16,6 +16,8 @@
         </div>
 
         <form id="login-form" class="form-view active" onsubmit="event.preventDefault();">
+            <div id="login-error-message" style="color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 10px; border-radius: 4px; margin-bottom: 15px; display: none;"></div>
+            
             <div class="input-group">
                 <label for="login-email">Email Address</label>
                 <input type="email" id="login-email" placeholder="you@example.com" required>
@@ -29,15 +31,16 @@
         </form>
 
         <form id="signup-form" class="form-view" onsubmit="event.preventDefault();">
+            <div id="signup-error-message" style="color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 10px; border-radius: 4px; margin-bottom: 15px; display: none;"></div>
+
             <div class="input-group">
                 <label for="signup-role">Role</label>
-                <input type="text" id="signup-role" list = "Role-options" placeholder="Eg. Student" required>
+                <input type="text" id="signup-role" list="Role-options" placeholder="Eg. Student" required>
                 <datalist id="Role-options">
                     <option value="Student">
                     <option value="Club Manager">
                     <option value="Admin">
                 </datalist>
-
             </div>
             <div class="input-group">
                 <label for="signup-email">Email Address</label>
@@ -47,111 +50,122 @@
                 <label for="signup-password">Create Password</label>
                 <input type="password" id="signup-password" placeholder="••••••••" required>
             </div>
-            <button type="submit" class="submit-btn" onclick = "registerUser()">Create Account</button>
+            <button type="submit" class="submit-btn" onclick="registerUser()">Create Account</button>
         </form>
     </div>
 
     <script>
+        const API_URL = "http://127.0.0.1:8000";
 
-    //--------------------------------------------------------   
-    //---------------- Animation and Selection----------------  
-    //--------------------------------------------------------   
-        // Set the initial position of the slider when the page loads
+        // ==========================================
+        // UI & ANIMATION LOGIC
+        // ==========================================
+        
         window.addEventListener('DOMContentLoaded', () => {
             const activeBtn = document.querySelector('.tab-btn.active');
             updateIndicator(activeBtn);
+            
+            // Hide error messages dynamically when the user starts typing again
+            document.getElementById('signup-form').addEventListener('input', () => {
+                document.getElementById('signup-error-message').style.display = 'none';
+            });
+            document.getElementById('login-form').addEventListener('input', () => {
+                document.getElementById('login-error-message').style.display = 'none';
+            });
         });
 
         function switchTab(event, tabId) {
-            // Remove active classes
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.form-view').forEach(form => form.classList.remove('active'));
 
-            // Add active class to clicked button
             event.target.classList.add('active');
-
-            // Show the corresponding form
             document.getElementById(tabId + '-form').classList.add('active');
 
-            // Slide the indicator to the clicked button
             updateIndicator(event.target);
+            
+            // Clear any lingering errors when switching tabs
+            document.getElementById('signup-error-message').style.display = 'none';
+            document.getElementById('login-error-message').style.display = 'none';
         }
 
         function updateIndicator(element) {
             const indicator = document.getElementById('tab-indicator');
-            // Match the width and position of the active button
             indicator.style.width = element.offsetWidth + 'px';
             indicator.style.left = element.offsetLeft + 'px';
         }
-        
 
+        // ==========================================
+        // AUTHENTICATION LOGIC
+        // ==========================================
 
-    //--------------------------------------------------------   
-    //---------------- Authentication Logic-------------------  
-    //--------------------------------------------------------   
-    const API_URL = "http://127.0.0.1:8000";
-    const TOKEN = {}
+        async function registerUser() {
+            const url = `${API_URL}/api/auth/register`;
+            
+            const errorElement = document.getElementById("signup-error-message");
+            const emailValue = document.getElementById("signup-email").value.trim();
+            const passwordValue = document.getElementById("signup-password").value.trim();
+            const roleValue = document.getElementById("signup-role").value.trim();
+            
+            const showError = (message) => {
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+            };
 
-    async function registerUser(){
-        const url = `${API_URL}/api/auth/register`;
-        
-        // 1. Get the values and trim invisible spaces
-        const emailValue = document.getElementById("signup-email").value.trim();
-        const passwordValue = document.getElementById("signup-password").value.trim();
-        const roleValue = document.getElementById("signup-role").value.trim();
-        
-        if(emailValue != '' && passwordValue != '' && roleValue != ''){
+            if (emailValue === '' || passwordValue === '' || roleValue === '') {
+                showError('Please enter all the details.');
+                return;
+            }
+
             try {
                 const credentials = {
-                    email: emailValue,       
+                    email: emailValue,      
                     password: passwordValue,
                     role: roleValue          
                 };
 
                 const response = await fetch(url, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json' 
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(credentials)
                 });
 
                 if (!response.ok) {
-                    // If the error is internal server error 500, it is most likely due to having conflicting primary key as the sqlalchemy wasn't able to add the data to the database 
-                    if (response.status === 500) {
-                        throw new Error("User Already Exists.");
-                    }
-                    throw new Error(`HTTP error! Status: ${response.status}`);
+                    const errorData = await response.json();
+                    showError(errorData.detail || "An unexpected error occurred.");
+                    return; 
                 }
 
                 const result = await response.json();
-                console.log('Registered Successfully:', result);
                 alert('Account created successfully! Please log in.');
                 
-                // --- UI CLEANUP ---
-                // 1. Clear the signup form fields
                 document.getElementById("signup-form").reset();
-                // 2. Automatically switch the UI back to the login tab
                 switchTab({target: document.querySelector('.tab-btn')}, 'login');
                 
                 return result;
 
             } catch (error) {
-                alert('Registration failed: ' + error);
+                console.error("Network/System error:", error);
+                showError('Unable to connect to the server. Please check your internet connection.');
             }
-        } else {
-            alert('Please Enter All the Details.');
         }
-    }
 
-    async function loginUser() {
-        const url = `${API_URL}/api/auth/login`;
-        
-        // 1. Get the values and trim invisible spaces
-        const emailValue = document.getElementById("login-email").value.trim();
-        const passwordValue = document.getElementById("login-password").value.trim();
+        async function loginUser() {
+            const url = `${API_URL}/api/auth/login`;
+            
+            const errorElement = document.getElementById("login-error-message");
+            const emailValue = document.getElementById("login-email").value.trim();
+            const passwordValue = document.getElementById("login-password").value.trim();
 
-        if(emailValue != '' && passwordValue != ''){
+            const showError = (message) => {
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+            };
+
+            if (emailValue === '' || passwordValue === '') {
+                showError('Please enter your email and password.');
+                return;
+            }
+
             try {
                 const formData = new URLSearchParams();
                 formData.append("username", emailValue); 
@@ -159,51 +173,31 @@
 
                 const response = await fetch(url, {
                     method: 'POST',
-                    // REMOVED the manual headers object entirely! 
-                    // Fetch will automatically set the correct Form-Data headers for URLSearchParams.
                     body: formData 
                 });
 
                 if (!response.ok) {
-                    // If it's a 400 error, it's likely bad credentials
-                    if (response.status === 400) {
-                        throw new Error("Incorrect email or password.");
+                    if (response.status === 400 || response.status === 401) {
+                        showError("Incorrect email or password.");
+                        return;
                     }
-                    throw new Error(`HTTP error! Status: ${response.status}`);
+                    showError(`Server error. Please try again later.`);
+                    return;
                 }
 
                 const result = await response.json();
-                console.log('LoggedIn Successfully:', result);
-                alert('Logged in successfully!');
                 
-                // Optional: Clear the login form after success
                 document.getElementById("login-form").reset();
-                
-
-                // saving the jwt token in session storage 
-                localStorage.setItem("token",result.access_token);
-
-                // redirecting the user to dashboard.html
+                localStorage.setItem("token", result.access_token);
                 window.location.replace("dashboard.html");
 
-
-
-
-                // console.log(result);
                 return result;
 
-
             } catch (error) {
-                alert('Login failed: ' + error.message);
+                console.error("Login system error:", error);
+                showError('Unable to connect to the server. Please check your internet connection.');
             }
-        } 
-        else {
-            alert('Please Enter Details First');
         }
-    }
-                
-            
-        </script>
-
+    </script>
 </body>
 </html>
