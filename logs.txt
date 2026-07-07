@@ -85,3 +85,9 @@ Updated the dashboard UI , created a simple sidebar for navigation with prefille
 fixed some bugs like user logged in even after logout , and updated the api routes that were causing problems
 bugs related to not being able to fetch user details , login failing , dashboard not correctly connected with the backend were all fixed and code is still in progress for now
 made an authFetch function as well that adds the token to the request while fetching and handles the core authentication logic to prevent redundant code and made changes accordingly.
+
+
+(7-06-26)
+Added a new Table in the database used to store the state of program like some important variables that need to be cached on startup or even a the list valid email domains that can be changed dynamically from the admin interface later to prevent sign ups from unauthorized users without university mail
+formatted the whole index.html and cleaned the whole code, now instead of alerts it uses a dynamically rendered area above the fields to show what is wrong to enhance the user experience
+made updates to backend aswell including fixing the register path again
