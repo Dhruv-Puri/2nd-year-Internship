@@ -40,3 +40,11 @@ class Attendance(Base):
     event_id = Column(Integer, ForeignKey("events.id"))
     marked_at = Column(DateTime, default=datetime.utcnow)
     __table_args__ = (UniqueConstraint('user_id', 'event_id', name='_user_event_attn_uc'),)
+
+
+# State will save the variables state of the program after the container would stop , eg- valid_email_domains.
+class State(Base):
+    __tablename__ = "variables_state"
+    university_name = Column(String,primary_key=True)
+    valid_email_domains = Column(String,nullable=False)
+    

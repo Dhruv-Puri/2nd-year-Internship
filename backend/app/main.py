@@ -1,6 +1,7 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException,status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from fastapi.security import OAuth2PasswordRequestForm
 
 from . import models, schema, database, auth
@@ -22,20 +23,57 @@ models.Base.metadata.create_all(bind=database.engine)
 # --- MINI EXTENSION: Notifications ---
 def send_email_notification(email: str, subject: str, message: str):
     # stub for sending email (will integrate SendGrid API here later)
+
     print(f"Sending Email to {email} | Subject: {subject} | Body: {message}")
 
 
 # ENDPOINTS 
 
 # Register User
-@app.post("/api/auth/register", response_model=schema.UserResponse)
+@app.post("/api/auth/register", response_model=schema.UserResponse, status_code=status.HTTP_201_CREATED)
 def register(user: schema.UserCreate, db: Session = Depends(database.get_db)):
+    
+    # 1. Extract and validate email domain
+    try:
+        email_domain = user.email.split("@")[1]
+    except IndexError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, 
+            detail="Invalid email format"
+        )
+
+    # 2. Check if domain is allowed
+    domain_exists = db.query(models.State).filter(models.State.valid_email_domains == email_domain).first()
+    if not domain_exists:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Email domain is not allowed"
+        )
+        
+    # 3. Hash password and create user object
     hashed_password = auth.get_password_hash(user.password)
     db_user = models.User(email=user.email, hashed_password=hashed_password, role=user.role)
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    
+    # 4. Safely commit to the database
+    try:
+        db.add(db_user)
+        db.commit()  # Database integrity checks (like Unique Constraints) trigger HERE
+        db.refresh(db_user)
+    except IntegrityError:
+        db.rollback()  # Crucial: roll back the failed transaction
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, 
+            detail="User with this email already exists"
+        )
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred"
+        )
     return db_user
+
+
 
 # Login
 @app.post("/api/auth/login", response_model=schema.Token)
@@ -48,7 +86,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 
 
-
+#Fetching current User
 @app.get("/api/users/me", response_model=schema.UserResponse)
 def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
     """
@@ -56,3 +94,5 @@ def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
     It requires a valid JWT token in the Authorization header.
     """
     return current_user
+
+
