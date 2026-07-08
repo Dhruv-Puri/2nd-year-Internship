@@ -91,3 +91,8 @@ made an authFetch function as well that adds the token to the request while fetc
 Added a new Table in the database used to store the state of program like some important variables that need to be cached on startup or even a the list valid email domains that can be changed dynamically from the admin interface later to prevent sign ups from unauthorized users without university mail
 formatted the whole index.html and cleaned the whole code, now instead of alerts it uses a dynamically rendered area above the fields to show what is wrong to enhance the user experience
 made updates to backend aswell including fixing the register path again
+
+
+(8-06-26)
+work on the dashboard is under progress making changes to it yet not uploaded yet, uploaded the index.html with completely reimagined interface, the core is same just the looks is different
+also added themes sections now the user can choose themes from the login itself , fixed some minor bugs arised during testing and learnt concepts like relationships in sqlalchemy aswell as model = Dict_config for how the data flows between different modules
