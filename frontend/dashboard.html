@@ -4,354 +4,1157 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EventHub Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- import icons from the external css -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"> 
-    
-    
     <style>
-        /* Base styles and variables */
-        :root {
-            --bg-color: #f9fafb;
-            --card-bg: #ffffff;
-            --text-main: #111827;
-            --text-muted: #6b7280;
-            --border-color: #e5e7eb;
-            --input-border: #d1d5db;
-            --primary-color: #111827;
-            --primary-hover: #374151;
-            --danger-color: #8e2727;
-            --danger-hover: #cc4848;
-             --primary: #4f46e5; --primary-light: #eef2ff; --bg: #f9fafb; --card: #ffffff; --text: #111827; --muted: #6b7280; --border: #e5e7eb; --success: #10b981; --danger: #ef4444; --sidebar-w: 260px;
+        :root { 
+            --primary: #4f46e5; 
+            --primary-light: #eef2ff; 
+            --bg: #f9fafb; 
+            --card: #ffffff; 
+            --text: #111827; 
+            --muted: #6b7280; 
+            --border: #e5e7eb; 
+            --success: #10b981; 
+            --danger: #ef4444; 
+            --warning: #f59e0b;
+            --sidebar-w: 260px; 
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; }
+        body { background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+
+        /* Sidebar */
+        .sidebar { 
+            width: var(--sidebar-w); 
+            background: var(--card); 
+            border-right: 1px solid var(--border); 
+            padding: 1.5rem; 
+            display: flex; 
+            flex-direction: column; 
+            position: fixed; 
+            height: 100vh; 
+            z-index: 10;
+            transition: width 0.3s ease, padding 0.3s ease;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .sidebar.collapsed {
+            width: 0;
+            padding: 0;
+            border-right: none;
+        }
+        .main-wrapper {
+            margin-left: var(--sidebar-w);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+        .main-wrapper.expanded {
+            margin-left: 0;
+        }
+        .toggle-btn {
+            font-size: 1.25rem;
+            color: var(--muted);
+            cursor: pointer;
+            margin-right: 1rem;
+            transition: color 0.2s;
         }
 
-        body {
-            margin: 0;
-            padding: 40px 20px;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            color: var(--text-main);
-            background: linear-gradient(rgba(249, 250, 251, 0.85), rgba(249, 250, 251, 0.85));
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
+
+        .toggle-btn:hover { color: var(--primary); }
+        .logo { font-size: 1.4rem; font-weight: 800; color: var(--primary); margin-bottom: 2rem; display: flex; align-items: center; gap: 0.5rem; }
+        .user-info { background: var(--bg); padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem; }
+        .user-role { font-size: 0.7rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
+        .user-email { font-size: 0.85rem; font-weight: 500; margin: 0.2rem 0; color: var(--muted); word-break: break-all; }
+        .user-name { font-weight: 600; margin-top: 0.2rem; }
+        .nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 8px; cursor: pointer; color: var(--muted); font-weight: 500; margin-bottom: 0.25rem; transition: all 0.2s; }
+        .nav-item:hover { background: var(--primary-light); color: var(--primary); }
+        .logout { margin-top: auto; color: var(--danger); cursor: pointer; }
+
+        /* Main Content */
+        .main-wrapper {
+            margin-left: var(--sidebar-w);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
             min-height: 100vh;
         }
 
-
-        /* Side Bar */
-        .sidebar { width: var(--sidebar-w); background: var(--card); border-right: 1px solid var(--border); padding: 1.5rem; display: flex; flex-direction: column; position: fixed; height: 100vh; }
-
-
-
-        .role-badge {
-            background: var(--border-color);
-            color: var(--text-main);
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            letter-spacing: 0.5px;
+        /* Top Bar */
+        .top-bar {
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 5;
         }
-
-        /* Dashboard Sections */
-        .dashboard-section {
+        #search-bar-container{
             display: none;
-            background-color: var(--card-bg);
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.02);
-            backdrop-filter: blur(4px);
         }
 
-        .dashboard-section.active {
-            display: block;
-            animation: slowFade 0.6s ease forwards;
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background: var(--bg);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            width: 300px;
+            border: 1px solid var(--border);
+        }
+        .search-bar input {
+            border: none;
+            background: transparent;
+            outline: none;
+            width: 100%;
+            margin: 0;
+            padding: 0 0.5rem;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-left: auto; /* Keeps notifications on the right when search bar is hidden */
+        }
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--muted);
+            transition: all 0.2s;
+            position: relative;
+        }
+        .icon-btn:hover { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+        .notification-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            background: var(--danger);
+            color: white;
+            font-size: 0.65rem;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
         }
 
-        @keyframes slowFade {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .dashboard-section h2 {
-            margin-top: 0;
-            padding-bottom: 16px;
-            border-bottom: 2px solid var(--border-color);
-            font-size: 1.25rem;
-        }
-
-        .dashboard-section h3 {
-            font-size: 1.1rem;
-            color: var(--text-main);
-            margin-bottom: 16px;
-        }
-
-        .card {
-            border: 1px solid var(--border-color);
-            padding: 20px;
-            border-radius: 12px;
-            background: var(--bg-color);
-        }
-
-        .flex-row {
-            display: flex; 
-            gap: 24px;
-        }
-        
-        .flex-col {
+        /* Dashboard Content */
+        .main-content {
+            padding: 2rem;
             flex: 1;
         }
+        .page-header { margin-bottom: 2rem; }
+        .page-header h1 { font-size: 1.8rem; font-weight: 800; }
+        .page-header p { color: var(--muted); margin-top: 0.25rem; }
 
-        /* Forms and Inputs */
-        input, textarea {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1px solid var(--input-border);
-            border-radius: 8px;
-            font-size: 1rem;
-            box-sizing: border-box;
-            background-color: #fff;
-            transition: border-color 0.4s ease, box-shadow 0.4s ease;
-            margin-bottom: 16px;
-            font-family: inherit;
-            color: var(--text-main);
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
+        .card { 
+            background: var(--card); 
+            border-radius: 12px; 
+            padding: 1.5rem; 
+            border: 1px solid var(--border); 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02); 
         }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .card-header h3 { font-size: 1.1rem; font-weight: 700; }
 
-        input:focus, textarea:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.1);
-        }
+        .badge { display: inline-block; padding: 0.25rem 0.75rem; background: var(--primary-light); color: var(--primary); border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
+        .badge.featured { background: #fef3c7; color: #d97706; }
+        .badge.success { background: #d1fae5; color: #065f46; }
+        .badge.danger { background: #fee2e2; color: #991b1b; }
 
-        textarea {
-            resize: vertical;
-            min-height: 100px;
+        .btn { 
+            padding: 0.6rem 1.2rem; 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 0.5rem;
+            font-size: 0.9rem;
         }
-
-        /* Action Buttons */
-        button {
-            padding: 12px 20px;
-            background-color: var(--primary-color);
-            color: #ffffff;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.4s ease;
-        }
-
-        button:hover {
-            background-color: var(--primary-hover);
-        }
-
-        button.logout {
-            background-color: var(--danger-color);
-            padding: 10px 16px;
-        }
+        .btn:hover { background: #4338ca; }
+        .btn-outline { background: white; color: var(--primary); border: 1px solid var(--primary); }
+        .btn-outline:hover { background: var(--primary-light); }
+        .btn-block { width: 100%; justify-content: center; }
+        .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
         
-        button.logout:hover {
-            background-color: var(--danger-hover);
-        }
+        /* Added for Cancel/Delete Buttons */
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; }
 
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .flex-row {
-                flex-direction: column;
-            }
+        /* Flashcard Styles */
+        .event-flashcard { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; }
+        .event-flashcard:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .event-flashcard .card-body { flex: 1; }
+
+        /* Universal Overlay System */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
         }
+        .overlay.active { display: flex; }
+        .overlay-modal {
+            background: white;
+            border-radius: 12px;
+            max-width: 700px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        }
+        .overlay-modal.large { max-width: 900px; }
+        .overlay-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 1;
+        }
+        .overlay-header h2 { font-size: 1.3rem; font-weight: 700; }
+        .overlay-body { padding: 1.5rem; }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--muted);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .close-btn:hover { background: var(--bg); color: var(--text); }
+
+        /* Chatbot Specific */
+        .chat-container { display: flex; flex-direction: column; height: 500px; }
+        .chat-messages { flex: 1; padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; background: var(--bg); }
+        .msg { max-width: 80%; padding: 0.75rem 1rem; border-radius: 12px; line-height: 1.5; font-size: 0.95rem; }
+        .msg.user { align-self: flex-end; background: var(--primary); color: white; border-bottom-right-radius: 0; }
+        .msg.bot { align-self: flex-start; background: white; color: var(--text); border-bottom-left-radius: 0; border: 1px solid var(--border); }
+        .chat-input { display: flex; padding: 1rem; border-top: 1px solid var(--border); gap: 0.5rem; }
+        .chat-input input { margin: 0; flex: 1; }
+
+        /* Form Inputs */
+        input, select, textarea { 
+            width: 100%; 
+            padding: 0.75rem; 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            margin-bottom: 1rem; 
+            font-size: 0.95rem; 
+            font-family: inherit;
+        }
+        textarea { min-height: 100px; resize: vertical; }
+        label { display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem; }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: var(--bg); font-weight: 600; color: var(--muted); font-size: 0.85rem; text-transform: uppercase; }
+
+        /* Toast */
+        .toast { position: fixed; bottom: 20px; right: 20px; background: var(--text); color: white; padding: 1rem 1.5rem; border-radius: 8px; opacity: 0; transform: translateY(20px); transition: all 0.3s; z-index: 2000; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+
+        /* Notification List */
+        .notif-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+        .notif-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .notif-icon.info { background: var(--primary-light); color: var(--primary); }
+        .notif-icon.success { background: #d1fae5; color: #065f46; }
+        .notif-icon.danger { background: #fee2e2; color: #991b1b; } /* Added for cancelled notifications */
+        .notif-content h4 { font-size: 0.95rem; margin-bottom: 0.25rem; }
+        .notif-content p { font-size: 0.85rem; color: var(--muted); }
     </style>
 </head>
 <body>
-    
-
-    <!-- Creating a Side Bar for navigation -->
+    <!-- Sidebar -->
     <aside class="sidebar">
         <div class="logo"><i class="fas fa-calendar-check"></i> EventHub</div>
         <div class="user-info">
             <div class="user-role" id="current-role-label">LOADING...</div>
+            <div class="user-name" id="user-name">...</div>
             <div class="user-email" id="user-email">...</div>
-            <div style="font-weight: 600; margin-top: 0.2rem;" id="user-name">...</div>
         </div>
-        <nav id="sidebar-nav"></nav>
+        <nav id="sidebar-nav">
+            <!-- Added ID to hide for Admin -->
+            <div class="nav-item" id="nav-chatbot" onclick="openOverlay('chatbot')"><i class="fas fa-robot"></i> Ask EventBot</div>
+            <div class="nav-item" id="nav-publish" style="display:none;" onclick="openOverlay('publish')"><i class="fas fa-plus-circle"></i> Publish Event</div>
+            <div class="nav-item" id="nav-attendance" style="display:none;" onclick="openOverlay('attendance')"><i class="fas fa-clipboard-check"></i> Manage Attendance</div>
+            <div class="nav-item" id="nav-reports" style="display:none;" onclick="openOverlay('reports')"><i class="fas fa-chart-line"></i> Analytics</div>
+        </nav>
         <div class="nav-item logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Log Out</div>
     </aside>
 
-
-
-        <!-- Student Section -->
-        <div id="student-view" class="dashboard-section">
-            <h2>Student Portal</h2>
-            
-            <div class="flex-row">
-                <div class="flex-col">
-                    <h3>Browse Upcoming Events</h3>
-                    <div class="card" id="available-events-list">
-                        <p style="color: var(--text-muted); margin: 0;">Loading events...</p>
+    <!-- Main Wrapper -->
+    <div class="main-wrapper">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <div style="display: flex; align-items: center; flex: 1;">
+                <i class="fas fa-bars toggle-btn" onclick="toggleSidebar()"></i>
+                <div id="search-bar-container" style="align-items: center; gap: 0.5rem;">
+                    <div class="search-bar">
+                       <i class="fas fa-search" style="color: var(--muted);"></i>
+                       <input type="text" id="search-input" placeholder="Search events...">
                     </div>
-                </div>
-                <div class="flex-col">
-                    <h3>My RSVPs</h3>
-                    <div class="card" id="my-rsvps-list">
-                        <p style="color: var(--text-muted); margin: 0;">No RSVPs yet.</p>
-                    </div>
+                    <button class="btn btn-sm" onclick="performSearch()" style="margin: 0; white-space: nowrap;">Search</button>
                 </div>
             </div>
-        </div>
-
-        <!-- Club Admin Section -->
-
-        <div id="admin-view" class="dashboard-section">
-            <h2>Club Admin Portal</h2>
             
-            <div class="flex-row">
-                <div class="flex-col">
-                    <h3>Create New Event</h3>
-                    <form id="create-event-form" onsubmit="event.preventDefault(); alert('Create event logic goes here!');">
-                        <input type="text" placeholder="Event Title" required>
-                        <input type="datetime-local" required>
-                        <textarea placeholder="Event Description"></textarea>
-                        <button type="submit" style="width: 100%;">Publish Event</button>
-                    </form>
+            <div class="header-actions">
+                <div class="icon-btn" onclick="openOverlay('notifications')">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notif-badge" style="display:none;">0</span>
                 </div>
-                <div class="flex-col">
-                    <h3>Manage Event Attendance</h3>
-                    <div class="card" id="manage-rsvps-list">
-                        <p style="color: var(--text-muted); margin: 0;">Select an event to view RSVPs and mark attendance.</p>
-                    </div>
+                <!-- Added ID to hide for Admin -->
+                <div class="icon-btn" id="top-chatbot" onclick="openOverlay('chatbot')">
+                    <i class="fas fa-comment-dots"></i>
                 </div>
             </div>
-        </div>
+        </header>
 
-        
-        <!-- Coordinator Section -->
-        <div id="coordinator-view" class="dashboard-section">
-            <h2>System Coordinator Portal</h2>
-            
-            <div class="flex-row">
-                <div class="card flex-col">
-                    <h3>Events Per Club</h3>
-                    <div id="report-events" style="color: var(--text-muted);">Generating metrics...</div>
-                </div>
-                <div class="card flex-col">
-                    <h3>Global Attendance Rate</h3>
-                    <div id="report-attendance" style="color: var(--text-muted);">Generating metrics...</div>
-                </div>
+        <!-- Dashboard Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1 id="page-title">Dashboard</h1>
+                <p id="page-subtitle">Welcome back! Here's what's happening today.</p>
             </div>
+            <div id="dashboard-grid" class="grid"></div>
+        </main>
+    </div>
+
+    <!-- Universal Overlay Container -->
+    <div id="universal-overlay" class="overlay" onclick="closeOverlay()">
+        <div class="overlay-modal" id="overlay-modal" onclick="event.stopPropagation()">
+            <div class="overlay-header">
+                <h2 id="overlay-title">Title</h2>
+                <button class="close-btn" onclick="closeOverlay()">&times;</button>
+            </div>
+            <div class="overlay-body" id="overlay-body"></div>
         </div>
     </div>
 
     <script>
-        const API_URL = "http://127.0.0.1:8000";
+        const API = "http://127.0.0.1:8000";
         let currentUser = null;
-        let state = {events:[],rsvps:[],clubs:[]};
+        let state = { events: [], rsvps: [], clubs: [], notifications: [] };
 
+        // ==========================================
+        // AUTH & INITIALIZATION
+        // ==========================================
+        async function init() {
+            const token = localStorage.getItem('token');
+            if (!token) { window.location.replace('index.html'); return; }
 
-        // Clearing token on window close/refresh
-        window.addEventListener("beforeunload", function (event) {
-            localStorage.removeItem("token");
-        });
+            try {
+                const res = await authFetch('/api/users/me');
+                currentUser = await res.json();
+            } catch (e) {
+                localStorage.removeItem('token');
+                window.location.href = 'index.html';
+                return;
+            }
 
+            document.getElementById('user-name').innerText = currentUser.name;
+            document.getElementById('user-email').innerText = currentUser.email;
+            document.getElementById('current-role-label').innerText = currentUser.role.toUpperCase();
 
+            // Show role-specific nav items & Hide Bot for Admin
+            if (currentUser.role === 'admin') {
+                document.getElementById('nav-publish').style.display = 'flex';
+                document.getElementById('nav-attendance').style.display = 'flex';
+                document.getElementById('nav-chatbot').style.display = 'none';
+                document.getElementById('top-chatbot').style.display = 'none';
+            } else if (currentUser.role === 'coordinator') {
+                document.getElementById('nav-reports').style.display = 'flex';
+            }
 
+            // Replaced generateNotifications() with real fetch
+            await Promise.all([fetchEvents(), fetchMyRsvps(), fetchClubs(), fetchNotifications()]);
+            
+            renderDashboard();
+        }
 
-        // ---------------------- 
-        // Authorization Function
-        // ----------------------
+        async function fetchNotifications() {
+            try {
+                state.notifications = await (await authFetch('/api/notifications')).json();
+                const badge = document.getElementById('notif-badge');
+                if (state.notifications.length > 0) {
+                    badge.innerText = state.notifications.length;
+                    badge.style.display = 'flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            } catch(e) {
+                state.notifications = [];
+            }
+        }
 
-        // Function for calling url but with authorization token to prevent redundancy
         async function authFetch(url, options = {}) {
             const token = localStorage.getItem('token');
-            if (!token){window.location.replace("index.html");return;}
-
-
             options.headers = { ...options.headers, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
-            const res = await fetch(API_URL + url, options);
-            if (res.status === 401 || res.status === 403 || res.status === 404) {
+            const res = await fetch(API + url, options);
+            if (res.status === 401 || res.status === 403) {
                 localStorage.removeItem('token');
-                window.location.replace('index.html');
-
-
-                alert("Unauthorized access");
+                window.location.href = 'index.html';
                 throw new Error('Unauthorized');
             }
             return res;
         }
 
-
-        // -----------------------
-        // Initialisation function
-        // -----------------------
-
-        async function init(){
-            // calling the auth Fetch designed to fetch details by automatically passing the token to prevent redundancy in code
-            const token = localStorage.getItem('token');
-            console.log(token);
-            if (!token){window.location.replace("index.html");return;}
-
-            const res = await authFetch('/api/users/me');
-            currentUser = await res.json();
-            
-
-
-            // if everything was successfull then we can fetch the user details from response attained from the above section  
-            document.getElementById('user-name').innerText = currentUser.name;
-            document.getElementById('user-email').innerText = currentUser.email;
-            document.getElementById('current-role-label').innerText = currentUser.role.toUpperCase();
-            document.getElementById('page-greeting').innerText = `Welcome, ${currentUser.name.split(' ')[0]}`;
-            
-            await Promise.all([fetchEvents(), fetchMyRsvps(), fetchClubs()]);
-            
-
-            // rendering the sidebar and dashboard
-            renderSidebar();
-            renderDashboard(); 
-            
-        }
-
-        // Upon Loading the webpage -
-        document.addEventListener("DOMContentLoaded", () => {
-            init();
-        });
-
-
-        
-        // -------------------  
-        // Rendering Functions
-        // ------------------- 
-        
-        function renderSidebar() {
-            const nav = document.getElementById('sidebar-nav');
-            let html = `<div class="nav-item active" data-view="portal" onclick="switchView('portal')"><i class="fas fa-home"></i> My Portal</div>`;
-
-            // Role-based navigation (Hides student stuff from Admin/Coordinator)
-            // Rendering only neccessary details for each role on the side bar
-            if (currentUser.role === 'student') {
-                html += `
-                    <div class="nav-item" data-view="events" onclick="switchView('events')"><i class="fas fa-calendar"></i> Upcoming Events</div>
-                    <div class="nav-item" data-view="rsvps" onclick="switchView('rsvps')"><i class="fas fa-ticket"></i> My RSVPs</div>
-                    <div class="nav-item" data-view="bot" onclick="switchView('bot')"><i class="fas fa-robot"></i> Ask EventBot</div>
-                `;
-            } else if (currentUser.role === 'admin') {
-                html += `
-                    <div class="nav-item" data-view="admin-publish" onclick="switchView('admin-publish')"><i class="fas fa-plus-circle"></i> Publish Event</div>
-                    <div class="nav-item" data-view="admin-manage" onclick="switchView('admin-manage')"><i class="fas fa-tasks"></i> Manage & Attendance</div>
-                    <div class="nav-item" data-view="admin-stats" onclick="switchView('admin-stats')"><i class="fas fa-chart-bar"></i> Club Stats</div>
-                `;
-            } else if (currentUser.role === 'coordinator') {
-                html += `
-                    <div class="nav-item" data-view="coord-reports" onclick="switchView('coord-reports')"><i class="fas fa-file-alt"></i> Analytics & Reports</div>
-                `;
-            }
-            nav.innerHTML = html;
-        }
-
-
         function logout() {
-            localStorage.removeItem("token");
-            window.location.replace("index.html");
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
         }
+
+        // ==========================================
+        // API FETCHING
+        // ==========================================
+        async function fetchEvents(searchQuery = '') { 
+            try {
+                const url = searchQuery ? `/api/events/upcoming?search_query=${encodeURIComponent(searchQuery)}` : '/api/events/upcoming';
+                state.events = await (await authFetch(url)).json(); 
+            } catch(e) { state.events = []; }
+        }
+        async function fetchMyRsvps() { 
+            try {
+                state.rsvps = await (await authFetch('/api/users/me/rsvps')).json(); 
+            } catch(e) { state.rsvps = []; }
+        }
+        async function fetchClubs() { 
+            try {
+                state.clubs = await (await authFetch('/api/clubs')).json(); 
+            } catch(e) { state.clubs = []; }
+        }
+        async function performSearch() {
+            const query = document.getElementById('search-input').value;
+            await fetchEvents(query);
+            const grid = document.getElementById('dashboard-grid');
+            grid.innerHTML = ''; // Clear grid to prevent piling up
+            renderStudentDashboard(grid);
+        }
+
+        // ==========================================
+        // DASHBOARD RENDERING (Single Page)
+        // ==========================================
+        function renderDashboard() {
+            const grid = document.getElementById('dashboard-grid');
+            const title = document.getElementById('page-title');
+            const subtitle = document.getElementById('page-subtitle');
+            
+            grid.innerHTML = '';
+
+            if (currentUser.role === 'student') {
+                title.innerText = `Welcome, ${currentUser.name.split(' ')[0]}!`;
+                subtitle.innerText = 'Here are the upcoming events and your registrations.';
+
+                // search bar
+                document.getElementById('search-bar-container').style.display = 'flex';
+                const searchInput = document.getElementById('search-input');
+                
+                // Auto-fetch all events if search bar is cleared
+                if (!searchInput.hasListener) {
+                    searchInput.addEventListener('input', async (e) => {
+                        if (e.target.value === '') {
+                            await fetchEvents('');
+                            const grid = document.getElementById('dashboard-grid');
+                            grid.innerHTML = '';
+                            renderStudentDashboard(grid);
+                        }
+                    });
+                    searchInput.hasListener = true;
+                }
+                
+                renderStudentDashboard(grid);
+            }
+
+            else if (currentUser.role === 'admin') {
+                title.innerText = 'Club Administration';
+                subtitle.innerText = 'Manage your club events, track attendance, and view reach.';
+                renderAdminDashboard(grid);
+            } else if (currentUser.role === 'coordinator') {
+                title.innerText = 'Coordinator Overview';
+                subtitle.innerText = 'Monitor all clubs and view institutional analytics.';
+                renderCoordinatorDashboard(grid);
+            }
+        }
+
+        function renderStudentDashboard(grid) {
+            // Welcome Card
+            grid.innerHTML += `
+                <div class="card" style="grid-column: span 2; background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%); color: white; border: none;">
+                    <h2 style="margin-bottom: 0.5rem;">You have ${state.rsvps.length} upcoming events</h2>
+                    <p style="opacity: 0.9; margin-bottom: 1rem;">Don't miss out on your registered events!</p>
+                    <button class="btn" style="background: white; color: var(--primary);" onclick="openOverlay('myrsvps')">View My RSVPs</button>
+                </div>
+            `;
+
+            // Upcoming Events Section
+            const eventsHTML = state.events.slice(0, state.events.length).map(e => {
+                const date = new Date(e.start_time).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+                const shortDesc = e.description.length > 60 ? e.description.substring(0, 60) + '...' : e.description;
+                
+                // Check if student already RSVPed
+                const isRsvped = state.rsvps.some(r => r.event.id === e.id);
+                const btnText = isRsvped ? `Cancel RSVP` : `RSVP (${e.rsvp_count} going)`;
+                const btnClass = isRsvped ? 'btn btn-block btn-sm btn-danger' : 'btn btn-block btn-sm';
+                const btnAction = isRsvped ? `cancelRSVP(${e.id})` : `handleRSVP(${e.id})`;
+
+                return `
+                    <div class="card event-flashcard" onclick="openEventDetails(${e.id})">
+                        <div class="card-body">
+                            <span class="badge ${e.is_featured ? 'featured' : ''}" style="margin-bottom: 0.5rem; display: inline-block;">${e.is_featured ? '⭐ Featured' : (e.club ? e.club.name : 'Club')}</span>
+                            <h3 style="margin: 0.5rem 0; font-size: 1.1rem;">${e.title}</h3>
+                            <p style="color: var(--muted); font-size: 0.85rem; margin-bottom: 0.5rem;"><i class="fas fa-clock"></i> ${date}</p>
+                            <p style="font-size: 0.9rem; color: var(--muted);">${shortDesc}</p>
+                        </div>
+                        <button class="${btnClass}" style="margin-top: 1rem;" onclick="event.stopPropagation(); ${btnAction}">${btnText}</button>
+                    </div>
+                `;
+            }).join('');
+
+            grid.innerHTML += `
+                <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-calendar" style="color: var(--primary); margin-right: 0.5rem;"></i> Upcoming Events</h3>
+                        <span style="color: var(--muted); font-size: 0.9rem;">${state.events.length} total</span>
+                    </div>
+                    <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+                        ${eventsHTML || '<p style="color: var(--muted);">No upcoming events.</p>'}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAdminDashboard(grid) {
+            // Stats Cards
+            grid.innerHTML += `
+                <div class="card">
+                    <h3 style="color: var(--muted); font-size: 0.85rem; text-transform: uppercase;">Total Reach</h3>
+                    <h1 style="font-size: 2.5rem; color: var(--primary); margin: 0.5rem 0;">342</h1>
+                    <p style="color: var(--success);"><i class="fas fa-arrow-up"></i> RSVPs this month</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: var(--muted); font-size: 0.85rem; text-transform: uppercase;">Active Events</h3>
+                    <h1 style="font-size: 2.5rem; color: var(--primary); margin: 0.5rem 0;">${state.events.length}</h1>
+                    <p style="color: var(--muted);">Events currently listed</p>
+                </div>
+                <div class="card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+                    <i class="fas fa-plus-circle" style="font-size: 2rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                    <h3 style="margin-bottom: 1rem;">Create New Event</h3>
+                    <button class="btn btn-block" onclick="openOverlay('publish')">Publish Event</button>
+                </div>
+            `;
+
+            // Recent Events Table Card with Delete Action
+            const recentEvents = state.events.map(e => `
+                <tr>
+                    <td><strong>${e.title}</strong></td>
+                    <td>${e.club ? e.club.name : 'N/A'}</td>
+                    <td>${new Date(e.start_time).toLocaleDateString()}</td>
+                    <td><span class="badge">${e.rsvp_count} RSVPs</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="deleteEvent(${e.id})">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            grid.innerHTML += `
+                <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-list" style="color: var(--primary); margin-right: 0.5rem;"></i> Manage Events</h3>
+                        <button class="btn btn-sm btn-outline" onclick="openOverlay('attendance')">Manage Attendance</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr><th>Event</th><th>Club</th><th>Date</th><th>Status</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody>
+                            ${recentEvents || '<tr><td colspan="5" style="text-align: center; color: var(--muted);">No events yet</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function renderCoordinatorDashboard(grid) {
+            grid.innerHTML += `
+                <div class="card">
+                    <h3 style="color: var(--muted); font-size: 0.85rem; text-transform: uppercase;">Total Clubs</h3>
+                    <h1 style="font-size: 2.5rem; color: var(--primary); margin: 0.5rem 0;">${state.clubs.length}</h1>
+                    <p style="color: var(--muted);">Registered clubs</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: var(--muted); font-size: 0.85rem; text-transform: uppercase;">Total Events</h3>
+                    <h1 style="font-size: 2.5rem; color: var(--primary); margin: 0.5rem 0;">${state.events.length}</h1>
+                    <p style="color: var(--muted);">Across all clubs</p>
+                </div>
+                <div class="card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+                    <i class="fas fa-chart-line" style="font-size: 2rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                    <h3 style="margin-bottom: 1rem;">View Full Reports</h3>
+                    <button class="btn btn-block" onclick="openOverlay('reports')">Open Analytics</button>
+                </div>
+            `;
+        }
+
+        // ==========================================
+        // OVERLAY SYSTEM
+        // ==========================================
+        function openOverlay(type, data = null) {
+            const overlay = document.getElementById('universal-overlay');
+            const modal = document.getElementById('overlay-modal');
+            const title = document.getElementById('overlay-title');
+            const body = document.getElementById('overlay-body');
+            
+            // Reset modal size
+            modal.classList.remove('large');
+            body.innerHTML = '';
+
+            switch(type) {
+                case 'notifications':
+                    title.innerText = 'Notifications';
+                    renderNotifications(body);
+                    break;
+                case 'chatbot':
+                    title.innerText = 'Ask EventBot';
+                    renderChatbot(body);
+                    break;
+                case 'event-details':
+                    title.innerText = 'Event Details';
+                    renderEventDetails(body, data);
+                    break;
+                case 'publish':
+                    title.innerText = 'Publish New Event';
+                    renderPublishForm(body);
+                    break;
+                case 'attendance':
+                    title.innerText = 'Manage Attendance';
+                    modal.classList.add('large');
+                    renderAttendanceManager(body);
+                    break;
+                case 'myrsvps':
+                    title.innerText = 'My RSVPs';
+                    renderMyRsvps(body);
+                    break;
+                case 'reports':
+                    title.innerText = 'Coordinator Analytics';
+                    modal.classList.add('large');
+                    renderReports(body);
+                    break;
+            }
+
+            overlay.classList.add('active');
+        }
+
+        function closeOverlay() {
+            document.getElementById('universal-overlay').classList.remove('active');
+        }
+
+        // ==========================================
+        // OVERLAY CONTENT RENDERERS
+        // ==========================================
+        function renderNotifications(container) {
+            if (!state.notifications || state.notifications.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--muted); padding: 2rem;">No new notifications</p>';
+                return;
+            }
+            container.innerHTML = state.notifications.map(n => {
+                const date = new Date(n.created_at).toLocaleString();
+                let iconClass = 'fa-info';
+                let typeClass = 'info';
+                if (n.message.toLowerCase().includes('confirmed') || n.message.toLowerCase().includes('marked')) {
+                    iconClass = 'fa-check';
+                    typeClass = 'success';
+                } else if (n.message.toLowerCase().includes('cancelled') || n.message.toLowerCase().includes('deleted')) {
+                    iconClass = 'fa-times';
+                    typeClass = 'danger';
+                }
+                
+                return `
+                    <div class="notif-item">
+                        <div class="notif-icon ${typeClass}">
+                            <i class="fas ${iconClass}"></i>
+                        </div>
+                        <div class="notif-content">
+                            <h4>${n.message}</h4>
+                            <small style="color: var(--muted); font-size: 0.75rem;">${date}</small>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderChatbot(container) {
+            container.innerHTML = `
+                <div class="chat-container">
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="msg bot">👋 Hi there! I'm trained on the college handbook and all active club events. What do you want to know?</div>
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" id="bot-input" placeholder="Ask a question..." onkeypress="if(event.key==='Enter') sendBotMsg()">
+                        <button class="btn" onclick="sendBotMsg()"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function sendBotMsg() {
+            const input = document.getElementById('bot-input');
+            const msg = input.value.trim(); 
+            if (!msg) return;
+            
+            const box = document.getElementById('chat-messages');
+            box.innerHTML += `<div class="msg user">${msg}</div>`; 
+            input.value = '';
+            box.scrollTop = box.scrollHeight;
+            
+            try {
+                const res = await authFetch('/api/bot/ask', { method: 'POST', body: JSON.stringify({ question: msg }) });
+                const data = await res.json();
+                box.innerHTML += `<div class="msg bot">${data.answer}</div>`;
+            } catch(e) {
+                box.innerHTML += `<div class="msg bot">Sorry, The server is either busy or booting up right now please try again after few minutes.</div>`;
+            }
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function openEventDetails(eventId) {
+            const eventData = state.events.find(e => e.id === eventId);
+            if (!eventData) return;
+            openOverlay('event-details', eventData);
+        }
+
+        function renderEventDetails(container, eventData) {
+            const date = new Date(eventData.start_time).toLocaleString('en-US', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' 
+            });
+            
+            const isRsvped = state.rsvps.some(r => r.event.id === eventData.id);
+            const btnText = isRsvped ? `Cancel RSVP` : `RSVP to this Event`;
+            const btnClass = isRsvped ? 'btn btn-block btn-danger' : 'btn btn-block';
+            const btnAction = isRsvped ? `cancelRSVP(${eventData.id}); closeOverlay();` : `handleRSVP(${eventData.id}); closeOverlay();`;
+
+            container.innerHTML = `
+                <span class="badge ${eventData.is_featured ? 'featured' : ''}" style="margin-bottom: 1rem; display: inline-block;">
+                    ${eventData.is_featured ? '⭐ Featured Event' : (eventData.club ? eventData.club.name : 'Club Event')}
+                </span>
+                <h2 style="margin-bottom: 1rem;">${eventData.title}</h2>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="padding: 1rem; background: var(--bg); border-radius: 8px;">
+                        <p style="color: var(--muted); font-size: 0.85rem;"><i class="fas fa-clock"></i> Date & Time</p>
+                        <p style="font-weight: 600; margin-top: 0.25rem;">${date}</p>
+                    </div>
+                    <div style="padding: 1rem; background: var(--bg); border-radius: 8px;">
+                        <p style="color: var(--muted); font-size: 0.85rem;"><i class="fas fa-users"></i> Current RSVPs</p>
+                        <p style="font-weight: 600; margin-top: 0.25rem;">${eventData.rsvp_count} students going</p>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="margin-bottom: 0.5rem;"><i class="fas fa-info-circle" style="color: var(--primary);"></i> Description</h4>
+                    <p style="line-height: 1.6; color: var(--text);">${eventData.description}</p>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="margin-bottom: 0.5rem;"><i class="fas fa-clipboard-list" style="color: var(--warning);"></i> Rules & Requirements</h4>
+                    <p style="line-height: 1.6; color: var(--text);">${eventData.rules || 'No specific rules specified.'}</p>
+                </div>
+
+                <button class="${btnClass}" style="margin-top: 1rem;" onclick="${btnAction}">
+                    <i class="fas fa-ticket"></i> ${btnText}
+                </button>
+            `;
+        }
+
+        function renderPublishForm(container) {
+            let opts = state.clubs.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            container.innerHTML = `
+                <form onsubmit="handlePublish(event)">
+                    <label>Event Title</label>
+                    <input type="text" id="p-title" placeholder="e.g., AI/ML Hackathon" required>
+                    
+                    <label>Organizing Club</label>
+                    <select id="p-club" required>${opts}</select>
+                    
+                    <label>Date & Time</label>
+                    <input type="datetime-local" id="p-time" required>
+                    
+                    <label>Description</label>
+                    <textarea id="p-desc" placeholder="Describe the event..." required></textarea>
+                    
+                    <label>Rules & Requirements</label>
+                    <textarea id="p-rules" placeholder="What should participants bring/know?" required></textarea>
+                    
+                    <button type="submit" class="btn btn-block">
+                        <i class="fas fa-paper-plane"></i> Publish Event
+                    </button>
+                </form>
+            `;
+        }
+
+        async function handlePublish(e) {
+            e.preventDefault();
+            const payload = { 
+                title: document.getElementById('p-title').value, 
+                club_id: parseInt(document.getElementById('p-club').value), 
+                start_time: new Date(document.getElementById('p-time').value).toISOString(), 
+                description: document.getElementById('p-desc').value, 
+                rules: document.getElementById('p-rules').value 
+            };
+            
+            try {
+                const res = await authFetch('/api/admin/events', { method: 'POST', body: JSON.stringify(payload) });
+                if (res.ok) { 
+                    showToast("Event Published!", 'success'); 
+                    await fetchEvents(); 
+                    renderDashboard();
+                    closeOverlay();
+                }
+            } catch(e) {
+                showToast("Failed to publish event", 'error');
+            }
+        }
+
+        function renderAttendanceManager(container) {
+            let opts = state.events.map(e => `<option value="${e.id}">${e.title}</option>`).join('');
+            container.innerHTML = `
+                <div style="margin-bottom: 1.5rem;">
+                    <label>Select Event to Manage</label>
+                    <select id="att-select" onchange="loadAttTable()">
+                        <option value="">Choose an event...</option>
+                        ${opts}
+                    </select>
+                </div>
+                <div id="att-table-container">
+                    <p style="text-align: center; color: var(--muted);">Select an event above to view and manage attendance.</p>
+                </div>
+            `;
+        }
+
+        async function loadAttTable() {
+            const id = document.getElementById('att-select').value; 
+            const container = document.getElementById('att-table-container');
+            
+            if (!id) { 
+                container.innerHTML = '<p style="text-align: center; color: var(--muted);">Select an event above.</p>'; 
+                return; 
+            }
+            
+            container.innerHTML = '<p style="text-align: center; color: var(--muted);">Loading...</p>';
+            
+            try {
+                const rsvps = await (await authFetch(`/api/admin/events/${id}/rsvps`)).json();
+                if (!rsvps.length) { 
+                    container.innerHTML = '<p style="text-align: center; color: var(--muted);">No RSVPs for this event yet.</p>'; 
+                    return; 
+                }
+                
+                let html = `
+                    <table>
+                        <thead>
+                            <tr><th>Name</th><th>Email</th><th>Status</th><th>Action</th></tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                rsvps.forEach(r => {
+                    html += `
+                        <tr>
+                            <td><strong>${r.user_name}</strong></td>
+                            <td>${r.user_email}</td>
+                            <td><span class="badge ${r.is_present ? 'success' : 'danger'}">${r.is_present ? '✓ Present' : '✗ Absent'}</span></td>
+                            <td>
+                                <button class="btn btn-sm ${r.is_present ? 'btn-outline' : ''}" onclick="toggleAtt(${id}, ${r.rsvp_id}, ${!r.is_present})">
+                                    Mark ${r.is_present ? 'Absent' : 'Present'}
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                        </tbody>
+                    </table>
+                    <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                        <button class="btn btn-outline" onclick="exportCSV(${id})">
+                            <i class="fas fa-download"></i> Export CSV Report
+                        </button>
+                    </div>
+                `;
+                
+                container.innerHTML = html;
+            } catch(e) {
+                container.innerHTML = '<p style="color: var(--danger);">Failed to load attendance data.</p>';
+            }
+        }
+
+        async function toggleAtt(eventId, rsvpId, isPresent) {
+            try {
+                await authFetch(`/api/admin/events/${eventId}/attendance`, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ rsvp_id: rsvpId, is_present: isPresent }) 
+                });
+                showToast("Attendance Updated!", 'success'); 
+                loadAttTable();
+            } catch(e) {
+                showToast("Failed to update attendance", 'error');
+            }
+        }
+
+        async function exportCSV(eventId) {
+            try {
+                const res = await authFetch(`/api/admin/events/${eventId}/export-csv`);
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `attendance_event_${eventId}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+                showToast("CSV Downloaded!", "success");
+            } catch (error) {
+                showToast('Failed to download CSV', 'error');
+            }
+        }
+
+        function renderMyRsvps(container) {
+            if (!state.rsvps.length) { 
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem;">
+                        <i class="fas fa-ticket" style="font-size: 3rem; color: var(--muted); margin-bottom: 1rem;"></i>
+                        <p style="color: var(--muted);">You haven't registered for any upcoming events yet.</p>
+                        <button class="btn" style="margin-top: 1rem;" onclick="closeOverlay()">Browse Events</button>
+                    </div>
+                `; 
+                return; 
+            }
+            
+            // Fixed table structure and placed button properly inside <td>
+            let html = '<table><thead><tr><th>Event</th><th>Club</th><th>Date</th><th>Action</th></tr></thead><tbody>';
+            state.rsvps.forEach(r => {
+                html += `
+                    <tr>
+                        <td><strong>${r.event.title}</strong></td>
+                        <td>${r.event.club ? r.event.club.name : 'N/A'}</td>
+                        <td>${new Date(r.event.start_time).toLocaleDateString()}</td>
+                        <td>
+                            <button onclick="cancelRSVP(${r.event.id})" class="btn btn-sm btn-danger">Cancel RSVP</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            container.innerHTML = html + '</tbody></table>';
+        }
+
+        async function renderReports(container) {
+            container.innerHTML = `
+                <div class="grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 1.5rem;">
+                    <div class="card" style="margin: 0;">
+                        <h3 style="color: var(--muted); font-size: 0.85rem;">Overall Attendance Rate</h3>
+                        <h1 id="coord-att-rate" style="color: var(--success); font-size: 2.5rem; margin: 0.5rem 0;">Loading...</h1>
+                    </div>
+                    <div class="card" style="margin: 0;">
+                        <h3 style="color: var(--muted); font-size: 0.85rem;">Top Performing Events</h3>
+                        <ul id="coord-top-events" style="margin-top: 0.5rem; list-style: none; padding: 0;"></ul>
+                    </div>
+                </div>
+                <div class="card" style="margin: 0;">
+                    <h3 style="margin-bottom: 1rem;">Events Organized per Club</h3>
+                    <div style="position: relative; height: 300px; width: 100%;">
+                        <canvas id="eventsPerClubChart"></canvas>
+                    </div>
+                </div>
+            `;
+
+            try {
+                // Note: Your backend has trailing spaces in keys, handling both cases
+                const res = await authFetch('/api/coordinator/reports');
+                const reports = await res.json();
+                
+                const attRate = reports.attendance_rate || reports["attendance_rate "] || "N/A";
+                const topEvents = reports.top_events || reports["top_events "] || [];
+                const eventsPerClub = reports.events_per_club || reports["events_per_club "] || [];
+
+                document.getElementById('coord-att-rate').innerText = attRate;
+                
+                const topList = document.getElementById('coord-top-events');
+                topList.innerHTML = topEvents.map(e => `
+                    <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border); display: flex; align-items: center;">
+                        <i class="fas fa-trophy" style="color: #d97706; margin-right: 0.5rem;"></i>
+                        ${e}
+                    </li>
+                `).join('');
+
+                if (eventsPerClub.length > 0) {
+                    const ctx = document.getElementById('eventsPerClubChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: eventsPerClub.map(item => (item.club || item["club "] || "").trim()),
+                            datasets: [{
+                                label: 'Events Count',
+                                data: eventsPerClub.map(item => item.count || item["count "] || 0),
+                                backgroundColor: 'rgba(79, 70, 229, 0.6)',
+                                borderColor: 'rgba(79, 70, 229, 1)',
+                                borderWidth: 1,
+                                borderRadius: 6
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                            plugins: { legend: { display: false } }
+                        }
+                    });
+                }
+            } catch (e) {
+                container.innerHTML += '<p style="color: var(--danger); margin-top: 1rem;">Failed to load coordinator reports. Make sure you are logged in as a coordinator.</p>';
+            }
+        }
+
+        // ==========================================
+        // RSVP & CANCEL HANDLING
+        // ==========================================
+        async function handleRSVP(eventId) {
+            try {
+                const res = await authFetch(`/api/events/${eventId}/rsvp`, { method: 'POST' });
+                if (res.ok) { 
+                    showToast("RSVP Confirmed! Check your notifications.", 'success'); 
+                    await Promise.all([fetchEvents(), fetchMyRsvps(), fetchNotifications()]); 
+                    renderDashboard(); 
+                } else { 
+                    const err = await res.json(); 
+                    showToast(err.detail || 'Failed to RSVP', 'error'); 
+                }
+            } catch (e) { 
+                showToast("Network Error", 'error'); 
+            }
+        }
+
+        async function cancelRSVP(eventId) {
+            if (!confirm("Are you sure you want to cancel your RSVP?")) return;
+            try {
+                const res = await authFetch(`/api/events/${eventId}/rsvp`, { method: 'DELETE' });
+                if (res.ok) {
+                    showToast("RSVP Cancelled!", 'success');
+                    await Promise.all([fetchEvents(), fetchMyRsvps(), fetchNotifications()]);
+                    renderDashboard();
+                    // If overlay is open, refresh it
+                    if (document.getElementById('universal-overlay').classList.contains('active')) {
+                        const title = document.getElementById('overlay-title').innerText;
+                        if (title === 'My RSVPs') renderMyRsvps(document.getElementById('overlay-body'));
+                        if (title === 'Event Details') {
+                            const eventData = state.events.find(e => e.id === eventId);
+                            if(eventData) renderEventDetails(document.getElementById('overlay-body'), eventData);
+                        }
+                    }
+                } else {
+                    showToast("Failed to cancel RSVP", 'error');
+                }
+            } catch (e) {
+                showToast("Network Error", 'error');
+            }
+        }
+
+        async function deleteEvent(eventId) {
+            if (!confirm("Are you sure you want to delete this event? This will cancel all student RSVPs.")) return;
+            try {
+                const res = await authFetch(`/api/admin/events/${eventId}`, { method: 'DELETE' });
+                if (res.ok) {
+                    showToast("Event Deleted!", 'success');
+                    await Promise.all([fetchEvents(), fetchNotifications()]);
+                    renderDashboard();
+                } else {
+                    showToast("Failed to delete event", 'error');
+                }
+            } catch (e) {
+                showToast("Network Error", 'error');
+            }
+        }
+
+        // ==========================================
+        // TOAST SYSTEM
+        // ==========================================
+        function showToast(msg, type = 'success') {
+            const t = document.createElement('div'); 
+            t.className = `toast ${type}`; 
+            t.innerText = msg;
+            document.body.appendChild(t); 
+            setTimeout(() => t.classList.add('show'), 10);
+            setTimeout(() => { 
+                t.classList.remove('show'); 
+                setTimeout(() => t.remove(), 300); 
+            }, 3000);
+        }
+        
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('collapsed');
+            document.querySelector('.main-wrapper').classList.toggle('expanded');
+        }
+
+        // ==========================================
+        // INIT
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
