@@ -94,5 +94,14 @@ made updates to backend aswell including fixing the register path again
 
 
 (8-06-26)
-work on the dashboard is under progress making changes to it yet not uploaded yet, uploaded the index.html with completely reimagined interface, the core is same just the looks is different
-also added themes sections now the user can choose themes from the login itself , fixed some minor bugs arised during testing and learnt concepts like relationships in sqlalchemy aswell as model = Dict_config for how the data flows between different modules
+work on the dashboard is under progress making changes to it yet not uploaded yet, uploaded the index.html with completely reimagined interface, 
+the core is same just the looks is different
+also added themes sections now the user can choose themes from the login itself , fixed some minor bugs arised during testing
+learnt concepts like relationships in sqlalchemy aswell as model = Dict_config for how the data flows between different modules
+
+
+(9-06-26)
+Explored the mailing services to choose which one would suit the best for sending mails via api for mini extension , 
+worked on the dashboard.html - added styling , make three panels - student , admin and coordinator
+completed the full basic UI for all the windows and connected them via a pseudo backend for now , would work on more endpoints and information transfer now
+made sure the app retains it's state while debugging , connected via a small sqlite server while testing , worked great , now would work on the backend next and add other services like notifications, CI/CD , deployment , refining and even RAG if possible
