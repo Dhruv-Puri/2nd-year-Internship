@@ -105,3 +105,10 @@ Explored the mailing services to choose which one would suit the best for sendin
 worked on the dashboard.html - added styling , make three panels - student , admin and coordinator
 completed the full basic UI for all the windows and connected them via a pseudo backend for now , would work on more endpoints and information transfer now
 made sure the app retains it's state while debugging , connected via a small sqlite server while testing , worked great , now would work on the backend next and add other services like notifications, CI/CD , deployment , refining and even RAG if possible
+
+
+(10-06-26)
+In the student pane if I wanted to cancel rsvp , then I could no longer search without refreshing the page fixed it , 
+Also events like ai/ml whose date has already passed still shows, and can be rsvpd which should not have been the case,
+Admin was also able to create an event in the past before today’s date and time,so I added a buffer of 3 hours minimum to create the event from current time ,
+Admin is also now able to update the details of the event 
