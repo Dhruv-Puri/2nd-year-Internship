@@ -606,7 +606,10 @@
                     <td>${e.club ? e.club.name : 'N/A'}</td>
                     <td>${new Date(e.start_time).toLocaleDateString()}</td>
                     <td><span class="badge">${e.rsvp_count} RSVPs</span></td>
-                    <td>
+                    <td style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-sm btn-outline" onclick="openEditEvent(${e.id})">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
                         <button class="btn btn-sm btn-danger" onclick="deleteEvent(${e.id})">
                             <i class="fas fa-trash"></i> Delete
                         </button>
@@ -695,6 +698,10 @@
                     title.innerText = 'Coordinator Analytics';
                     modal.classList.add('large');
                     renderReports(body);
+                    break;
+                                case 'edit-event':
+                    title.innerText = 'Update Event Details';
+                    renderEditForm(body, data);
                     break;
             }
 
@@ -865,11 +872,85 @@
                     await fetchEvents(); 
                     renderDashboard();
                     closeOverlay();
+                } else {
+                    const errData = await res.json();
+                    showToast(errData.detail || "Failed to publish event", 'error'); // Shows backend error
                 }
             } catch(e) {
-                showToast("Failed to publish event", 'error');
+                showToast("Network Error", 'error');
             }
         }
+
+
+                function openEditEvent(eventId) {
+            const eventData = state.events.find(e => e.id === eventId);
+            if (!eventData) return;
+            openOverlay('edit-event', eventData);
+        }
+
+        function renderEditForm(container, eventData) {
+            let opts = state.clubs.map(c => `<option value="${c.id}" ${c.id === eventData.club.id ? 'selected' : ''}>${c.name}</option>`).join('');
+            
+            // Format datetime for the datetime-local input safely
+            const startDate = new Date(eventData.start_time);
+            const year = startDate.getFullYear();
+            const month = String(startDate.getMonth() + 1).padStart(2, '0');
+            const day = String(startDate.getDate()).padStart(2, '0');
+            const hours = String(startDate.getHours()).padStart(2, '0');
+            const minutes = String(startDate.getMinutes()).padStart(2, '0');
+            const localISOTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+            container.innerHTML = `
+                <form onsubmit="handleUpdate(event, ${eventData.id})">
+                    <label>Event Title</label>
+                    <input type="text" id="e-title" value="${eventData.title}" required>
+                    
+                    <label>Organizing Club</label>
+                    <select id="e-club" required>${opts}</select>
+                    
+                    <label>Date & Time</label>
+                    <input type="datetime-local" id="e-time" value="${localISOTime}" required>
+                    
+                    <label>Description</label>
+                    <textarea id="e-desc" required>${eventData.description}</textarea>
+                    
+                    <label>Rules & Requirements</label>
+                    <textarea id="e-rules" required>${eventData.rules}</textarea>
+                    
+                    <button type="submit" class="btn btn-block">
+                        <i class="fas fa-save"></i> Update Event
+                    </button>
+                </form>
+            `;
+        }
+
+        async function handleUpdate(e, eventId) {
+            e.preventDefault();
+            const payload = { 
+                title: document.getElementById('e-title').value, 
+                club_id: parseInt(document.getElementById('e-club').value), 
+                start_time: new Date(document.getElementById('e-time').value).toISOString(), 
+                description: document.getElementById('e-desc').value, 
+                rules: document.getElementById('e-rules').value 
+            };
+            
+            try {
+                const res = await authFetch(`/api/admin/events/${eventId}`, { method: 'PUT', body: JSON.stringify(payload) });
+                if (res.ok) { 
+                    showToast("Event Updated!", 'success'); 
+                    await fetchEvents(); 
+                    renderDashboard();
+                    closeOverlay();
+                } else {
+                    const errData = await res.json();
+                    showToast(errData.detail || "Failed to update event", 'error'); // Shows 3-hour buffer error
+                }
+            } catch(e) {
+                showToast("Network Error", 'error');
+            }
+        }
+
+
 
         function renderAttendanceManager(container) {
             let opts = state.events.map(e => `<option value="${e.id}">${e.title}</option>`).join('');
