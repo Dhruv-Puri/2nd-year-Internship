@@ -12,11 +12,11 @@
 ## 🧠 What I Learned
 
 ### Week 2
-* **Pydantic & ORM Integration:** I was genuinely surprised by how elegantly Pydantic bridges the gap with SQLAlchemy using `ConfigDict(from_attributes=True)` to dictate how data flows between different modules[cite: 3]. It automatically reads ORM object attributes and validates them, saving immense boilerplate code.
+* **Pydantic & ORM Integration:** I was genuinely surprised by how elegantly Pydantic bridges the gap with SQLAlchemy using `ConfigDict(from_attributes=True)` to dictate how data flows between different modules. It automatically reads ORM object attributes and validates them, saving immense boilerplate code.
 * **Azure Infrastructure & Network Boundaries:** Gained deep insight into how Azure handles infrastructure by cleanly decoupling frontend and backend deployments. It was eye-opening to see how strictly cloud network boundaries are enforced, reinforcing the importance of isolating database URLs and secret keys in the `.env` pipeline.
-* **SQLAlchemy Relationships & State Sync:** Learned to establish robust SQLAlchemy relationships to handle state management across entities[cite: 3].
-* **Temporal Guardrails & Validation:** Added strict backend guardrails, such as enforcing a 3-hour minimum buffer from the current time for admins creating or updating events, and preventing RSVPs to past events[cite: 3].
-* **UI Abstraction & Role-Based State:** Developed an `authFetch` wrapper function in JavaScript that automatically injects the authentication token into requests, streamlining the logic to display three distinct dashboard panels (Student, Admin, and Coordinator)[cite: 3].
+* **SQLAlchemy Relationships & State Sync:** Learned to establish robust SQLAlchemy relationships to handle state management across entities.
+* **Temporal Guardrails & Validation:** Added strict backend guardrails, such as enforcing a 3-hour minimum buffer from the current time for admins creating or updating events, and preventing RSVPs to past events.
+* **UI Abstraction & Role-Based State:** Developed an `authFetch` wrapper function in JavaScript that automatically injects the authentication token into requests, streamlining the logic to display three distinct dashboard panels (Student, Admin, and Coordinator).
 
 ### Week 1
 * **Decoupling Data Validation from Database Schema:** I gained a clear understanding of the architectural boundary in FastAPI between SQLAlchemy ORM models (which dictate the physical database table structure) and Pydantic schemas (which enforce strict data validation and API payload serialization).
