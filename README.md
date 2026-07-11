@@ -1,4 +1,3 @@
-
 # 🎟️ EventHub: Internal Tool Backbone + AI RAG Extension
 
 > *A centralized, cloud-native platform for university student clubs to organize events, manage RSVPs, and query event guidelines using an integrated AI assistant.*
@@ -10,8 +9,16 @@
 
 ---
 
-## 🧠 What I Learned This Week
+## 🧠 What I Learned
 
+### Week 2
+* **Pydantic & ORM Integration:** I was genuinely surprised by how elegantly Pydantic bridges the gap with SQLAlchemy using `ConfigDict(from_attributes=True)` to dictate how data flows between different modules[cite: 3]. It automatically reads ORM object attributes and validates them, saving immense boilerplate code.
+* **Azure Infrastructure & Network Boundaries:** Gained deep insight into how Azure handles infrastructure by cleanly decoupling frontend and backend deployments. It was eye-opening to see how strictly cloud network boundaries are enforced, reinforcing the importance of isolating database URLs and secret keys in the `.env` pipeline.
+* **SQLAlchemy Relationships & State Sync:** Learned to establish robust SQLAlchemy relationships to handle state management across entities[cite: 3].
+* **Temporal Guardrails & Validation:** Added strict backend guardrails, such as enforcing a 3-hour minimum buffer from the current time for admins creating or updating events, and preventing RSVPs to past events[cite: 3].
+* **UI Abstraction & Role-Based State:** Developed an `authFetch` wrapper function in JavaScript that automatically injects the authentication token into requests, streamlining the logic to display three distinct dashboard panels (Student, Admin, and Coordinator)[cite: 3].
+
+### Week 1
 * **Decoupling Data Validation from Database Schema:** I gained a clear understanding of the architectural boundary in FastAPI between SQLAlchemy ORM models (which dictate the physical database table structure) and Pydantic schemas (which enforce strict data validation and API payload serialization).
 * **Cross-Origin Resource Sharing (CORS):** I learned how to configure CORS middleware to allow cross-origin network requests. This was a critical step in establishing a fully decoupled architecture, enabling my standalone HTML/Vanilla JS frontend to securely communicate with the FastAPI backend.
 * **Stateless Authentication (JWT & Bcrypt):** I built a secure, token-based authentication flow from scratch. This involved securely hashing user passwords using Bcrypt before saving them to PostgreSQL, and generating JSON Web Tokens (JWT) to authorize protected API endpoints statelessly.
@@ -36,5 +43,3 @@
 
 
 ## Note: rest of the details are added in the github issue and doc/design_doc.md)
-
-
