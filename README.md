@@ -42,4 +42,4 @@
 ---
 
 
-## Note: rest of the details are added in the github issue and doc/design_doc.md)
+## Note: rest of the details are added in the github issue and doc/ADR_001.md)
