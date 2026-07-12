@@ -38,6 +38,7 @@
             transition: width 0.3s ease, padding 0.3s ease;
             overflow: hidden;
             white-space: nowrap;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .sidebar.collapsed {
             width: 0;
@@ -50,7 +51,8 @@
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            transition: margin-left 0.3s ease;
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+           
         }
         .main-wrapper.expanded {
             margin-left: 0;
@@ -208,7 +210,7 @@
         .btn-danger:hover { background: #dc2626; }
 
         /* Flashcard Styles */
-        .event-flashcard { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; }
+        .event-flashcard { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);}
         .event-flashcard:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         .event-flashcard .card-body { flex: 1; }
 
@@ -318,6 +320,78 @@
         .notif-icon.danger { background: #fee2e2; color: #991b1b; } /* Added for cancelled notifications */
         .notif-content h4 { font-size: 0.95rem; margin-bottom: 0.25rem; }
         .notif-content p { font-size: 0.85rem; color: var(--muted); }
+
+
+
+
+       @media (max-width: 768px) {
+            /* 1. Layout & Z-Index Fixes */
+            .top-bar {
+                z-index: 20; 
+                padding: 0.75rem 1rem; 
+                height: 64px; /* Force a consistent height so the sidebar tucks under it perfectly */
+            }
+            
+            .sidebar {
+                top: 64px; /* Matches the top-bar height */
+                height: calc(100vh - 64px);
+                box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+                z-index: 10;
+                padding: 1rem; /* Smaller padding inside the sidebar */
+            }
+            
+            .main-wrapper, .main-wrapper.expanded {
+                margin-left: 0 !important;
+            }
+            
+            /* 2. Reduce Whitespace (Paddings & Gaps) */
+            .main-content { padding: 1rem; }
+            .grid { gap: 1rem; } /* Tighter space between cards */
+            .card { padding: 1rem; } /* Less empty space inside cards */
+            
+            /* 3. Scale Down Typography */
+            .page-header h1 { font-size: 1.4rem; }
+            .page-header p { font-size: 0.85rem; }
+            .card-header h3 { font-size: 1rem; }
+            .event-flashcard h3 { font-size: 1rem; }
+            .logo { font-size: 1.1rem; margin-bottom: 1.5rem; }
+            
+            /* 4. Shrink Interactive Elements (Buttons, Inputs, Nav) */
+            .btn { 
+                padding: 0.5rem 1rem; 
+                font-size: 0.85rem; 
+            }
+            input, select, textarea { 
+                padding: 0.5rem; 
+                font-size: 0.85rem; 
+                margin-bottom: 0.75rem;
+            }
+            .nav-item { 
+                padding: 0.5rem 0.75rem; 
+                font-size: 0.85rem; 
+                gap: 0.5rem;
+            }
+            
+            /* 5. Header Specifics */
+            .search-bar { width: 140px; padding: 0.4rem 0.75rem; }
+            .header-actions { gap: 0.5rem; }
+            .icon-btn { width: 35px; height: 35px; font-size: 0.85rem; }
+            
+            /* 6. Overlays & Modals */
+            .overlay { padding: 1rem; }
+            .overlay-header { padding: 1rem; }
+            .overlay-body { padding: 1rem; }
+            .overlay-header h2 { font-size: 1.1rem; }
+            
+            /* 7. Scrollable & Smaller Tables */
+            .card table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+                font-size: 0.85rem; 
+            }
+            th, td { padding: 0.75rem; }
+        }
     </style>
 </head>
 <body>
@@ -533,17 +607,20 @@
         }
 
         function renderStudentDashboard(grid) {
-            // Welcome Card
-            grid.innerHTML += `
-                <div class="card" style="grid-column: span 2; background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%); color: white; border: none;">
-                    <h2 style="margin-bottom: 0.5rem;">You have ${state.rsvps.length} upcoming events</h2>
-                    <p style="opacity: 0.9; margin-bottom: 1rem;">Don't miss out on your registered events!</p>
-                    <button class="btn" style="background: white; color: var(--primary);" onclick="openOverlay('myrsvps')">View My RSVPs</button>
-                </div>
-            `;
+                // Filter out events where attendance has been submitted (completed/finished events)
+                const activeEvents = state.events.filter(e => !e.attendance_submitted);
+                
+                // Welcome Card
+                grid.innerHTML += `
+                    <div class="card" style="grid-column: span 2; background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%); color: white; border: none;">
+                        <h2 style="margin-bottom: 0.5rem;">You have ${state.rsvps.length} upcoming events</h2>
+                        <p style="opacity: 0.9; margin-bottom: 1rem;">Don't miss out on your registered events!</p>
+                        <button class="btn" style="background: white; color: var(--primary);" onclick="openOverlay('myrsvps')">View My RSVPs</button>
+                    </div>
+                `;
 
-            // Upcoming Events Section
-            const eventsHTML = state.events.slice(0, state.events.length).map(e => {
+                // Upcoming Events Section - USE activeEvents INSTEAD OF state.events
+                const eventsHTML = activeEvents.map(e => {
                 const date = new Date(e.start_time).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
                 const shortDesc = e.description.length > 60 ? e.description.substring(0, 60) + '...' : e.description;
                 
@@ -570,7 +647,7 @@
                 <div class="card" style="grid-column: 1 / -1;">
                     <div class="card-header">
                         <h3><i class="fas fa-calendar" style="color: var(--primary); margin-right: 0.5rem;"></i> Upcoming Events</h3>
-                        <span style="color: var(--muted); font-size: 0.9rem;">${state.events.length} total</span>
+                        <span style="color: var(--muted); font-size: 0.9rem;">${activeEvents.length} total</span>
                     </div>
                     <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
                         ${eventsHTML || '<p style="color: var(--muted);">No upcoming events.</p>'}
@@ -600,22 +677,27 @@
             `;
 
             // Recent Events Table Card with Delete Action
-            const recentEvents = state.events.map(e => `
-                <tr>
-                    <td><strong>${e.title}</strong></td>
-                    <td>${e.club ? e.club.name : 'N/A'}</td>
-                    <td>${new Date(e.start_time).toLocaleDateString()}</td>
-                    <td><span class="badge">${e.rsvp_count} RSVPs</span></td>
-                    <td style="display: flex; gap: 0.5rem;">
-                        <button class="btn btn-sm btn-outline" onclick="openEditEvent(${e.id})">
-                            <i class="fas fa-edit"></i> Edit
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteEvent(${e.id})">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+            const recentEvents = state.events.map(e => {
+                const isLocked = e.attendance_submitted;
+                return `
+                    <tr>
+                        <td><strong>${e.title}</strong></td>
+                        <td>${e.club ? e.club.name : 'N/A'}</td>
+                        <td>${new Date(e.start_time).toLocaleDateString()}</td>
+                        <td><span class="badge">${e.rsvp_count} RSVPs</span></td>
+                        <td style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-sm btn-outline" onclick="openEditEvent(${e.id})" 
+                                    ${isLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>
+                                <i class="fas ${isLocked ? 'fa-lock' : 'fa-edit'}"></i> ${isLocked ? 'Locked' : 'Edit'}
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteEvent(${e.id})" 
+                                    ${isLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>
+                                <i class="fas ${isLocked ? 'fa-lock' : 'fa-trash'}"></i> ${isLocked ? 'Locked' : 'Delete'}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
 
             grid.innerHTML += `
                 <div class="card" style="grid-column: 1 / -1;">
@@ -981,6 +1063,9 @@
             
             try {
                 const rsvps = await (await authFetch(`/api/admin/events/${id}/rsvps`)).json();
+                const event = state.events.find(e => e.id === parseInt(id));
+                const isSubmitted = event && event.attendance_submitted;
+                
                 if (!rsvps.length) { 
                     container.innerHTML = '<p style="text-align: center; color: var(--muted);">No RSVPs for this event yet.</p>'; 
                     return; 
@@ -1001,7 +1086,9 @@
                             <td>${r.user_email}</td>
                             <td><span class="badge ${r.is_present ? 'success' : 'danger'}">${r.is_present ? '✓ Present' : '✗ Absent'}</span></td>
                             <td>
-                                <button class="btn btn-sm ${r.is_present ? 'btn-outline' : ''}" onclick="toggleAtt(${id}, ${r.rsvp_id}, ${!r.is_present})">
+                                <button class="btn btn-sm ${r.is_present ? 'btn-outline' : ''}" 
+                                        onclick="toggleAtt(${id}, ${r.rsvp_id}, ${!r.is_present})" 
+                                        ${isSubmitted ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>
                                     Mark ${r.is_present ? 'Absent' : 'Present'}
                                 </button>
                             </td>
@@ -1012,11 +1099,19 @@
                 html += `
                         </tbody>
                     </table>
-                    <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                    <div style="margin-top: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
                         <button class="btn btn-outline" onclick="exportCSV(${id})">
                             <i class="fas fa-download"></i> Export CSV Report
                         </button>
+                        <button class="btn" 
+                                style="background: ${isSubmitted ? '#9ca3af' : '#10b981'}; cursor: ${isSubmitted ? 'not-allowed' : 'pointer'};" 
+                                onclick="${isSubmitted ? '' : `submitAttendance(${id})`}" 
+                                ${isSubmitted ? 'disabled' : ''}>
+                            <i class="fas ${isSubmitted ? 'fa-lock' : 'fa-check-circle'}"></i> 
+                            ${isSubmitted ? 'Attendance Locked' : 'Submit & Lock Attendance'}
+                        </button>
                     </div>
+                    ${isSubmitted ? '<p style="color: var(--success); margin-top: 1rem; font-weight: 600;"><i class="fas fa-info-circle"></i> Attendance has been finalized. This event has been removed from students\' active pages.</p>' : ''}
                 `;
                 
                 container.innerHTML = html;
@@ -1053,6 +1148,31 @@
                 showToast("CSV Downloaded!", "success");
             } catch (error) {
                 showToast('Failed to download CSV', 'error');
+            }
+        }
+
+        async function submitAttendance(eventId) {
+            if (!confirm("Are you sure you want to submit attendance? This will permanently lock attendance records and remove this event from students' active pages.")) return;
+            
+            try {
+                const res = await authFetch(`/api/admin/events/${eventId}/submit-attendance`, { method: 'POST' });
+                if (res.ok) {
+                    showToast("Attendance Submitted & Locked!", 'success');
+                    
+                    // 1. Fetch the latest data from the backend (where attendance_submitted is now true)
+                    await Promise.all([fetchEvents(), fetchNotifications()]);
+                    
+                    // 2. Re-render the main dashboard to instantly update the Edit/Delete buttons to "Locked"
+                    renderDashboard();
+                    
+                    // 3. Close the attendance modal
+                    closeOverlay();
+                } else {
+                    const errData = await res.json();
+                    showToast(errData.detail || "Failed to submit attendance", 'error');
+                }
+            } catch (e) {
+                showToast("Network Error", 'error');
             }
         }
 
@@ -1173,27 +1293,36 @@
 
         async function cancelRSVP(eventId) {
             if (!confirm("Are you sure you want to cancel your RSVP?")) return;
+            
             try {
                 const res = await authFetch(`/api/events/${eventId}/rsvp`, { method: 'DELETE' });
                 if (res.ok) {
                     showToast("RSVP Cancelled!", 'success');
-                    await Promise.all([fetchEvents(), fetchMyRsvps(), fetchNotifications()]);
-                    renderDashboard();
-                    // If overlay is open, refresh it
-                    if (document.getElementById('universal-overlay').classList.contains('active')) {
-                        const title = document.getElementById('overlay-title').innerText;
-                        if (title === 'My RSVPs') renderMyRsvps(document.getElementById('overlay-body'));
-                        if (title === 'Event Details') {
-                            const eventData = state.events.find(e => e.id === eventId);
-                            if(eventData) renderEventDetails(document.getElementById('overlay-body'), eventData);
-                        }
-                    }
                 } else {
-                    showToast("Failed to cancel RSVP", 'error');
+                    // Catch the backend's rejection message (e.g., "Attendance already marked")
+                    const err = await res.json();
+                    showToast(err.detail || "Failed to cancel RSVP", 'error');
+                    
                 }
             } catch (e) {
                 showToast("Network Error", 'error');
             }
+            
+            // --- AUTO-RECOVERY (The Magic Fix) ---
+            // Always re-fetch and re-render to ensure UI matches backend reality
+            await Promise.all([fetchEvents(), fetchMyRsvps(), fetchNotifications()]);
+            renderDashboard();
+            
+            // If an overlay is open, refresh its contents seamlessly
+            if (document.getElementById('universal-overlay').classList.contains('active')) {
+                const title = document.getElementById('overlay-title').innerText;
+                if (title === 'My RSVPs') renderMyRsvps(document.getElementById('overlay-body'));
+                if (title === 'Event Details') {
+                    const eventData = state.events.find(e => e.id === eventId);
+                    if(eventData) renderEventDetails(document.getElementById('overlay-body'), eventData);
+                }
+            }
+            // location.reload();
         }
 
         async function deleteEvent(eventId) {
@@ -1204,12 +1333,15 @@
                     showToast("Event Deleted!", 'success');
                     await Promise.all([fetchEvents(), fetchNotifications()]);
                     renderDashboard();
+                    // Show notification to admin
+                    showToast("Notification sent to affected students", 'success');
                 } else {
                     showToast("Failed to delete event", 'error');
                 }
             } catch (e) {
                 showToast("Network Error", 'error');
             }
+            
         }
 
         // ==========================================
@@ -1231,11 +1363,26 @@
             document.querySelector('.sidebar').classList.toggle('collapsed');
             document.querySelector('.main-wrapper').classList.toggle('expanded');
         }
+        // Automatically close the sidebar on mobile when a navigation item is clicked
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    document.querySelector('.sidebar').classList.add('collapsed');
+                }
+            });
+        });
 
         // ==========================================
         // INIT
         // ==========================================
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', () => {
+            // Automatically close sidebar if the screen is mobile-sized
+            if (window.innerWidth <= 768) {
+                document.querySelector('.sidebar').classList.add('collapsed');
+                document.querySelector('.main-wrapper').classList.add('expanded');
+            }
+            init();
+        });
     </script>
 </body>
 </html>
