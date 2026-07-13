@@ -1,4 +1,4 @@
-<!-- add Themes  -->
+ <!-- add Themes  -->
 
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
@@ -10,364 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        /* =========================================
-           VARIABLES & THEME SETUP
-           ========================================= */
-        :root {
-            /* Light Theme (Minimalist Monochrome) */
-            --bg-color: #f3f4f6;
-            --card-bg: #ffffff;
-            --text-main: #111827;
-            --text-muted: #6b7280;
-            --border-color: #e5e7eb;
-            --input-bg: #f9fafb;
-            --input-border: #d1d5db;
-            --primary-color: #111827;
-            --primary-hover: #374151;
-            --btn-text: #ffffff;
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
-            --error-color: #ef4444;
-            --focus-ring: rgba(17, 24, 39, 0.1);
-        }
-
-        [data-theme="dark"] {
-            /* Dark Theme (Deep Slate) */
-            --bg-color: #0f172a; 
-            --card-bg: #1e293b; 
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --border-color: #334155;
-            --input-bg: #0f172a;
-            --input-border: #475569;
-            --primary-color: #f8fafc;
-            --primary-hover: #cbd5e1;
-            --btn-text: #0f172a;
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
-            --error-color: #f87171;
-            --focus-ring: rgba(248, 250, 252, 0.15);
-        }
-
-        /* =========================================
-           BASE & RESET
-           ========================================= */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            transition: background-color 0.4s ease, color 0.4s ease;
-            padding: 20px;
-            position: relative;
-        }
-
-        /* =========================================
-           THEME TOGGLE
-           ========================================= */
-        .theme-toggle {
-            position: fixed;
-            top: 24px;
-            right: 24px;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: var(--shadow-md);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 100;
-            font-size: 1.1rem;
-        }
-
-        .theme-toggle:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-            border-color: var(--text-muted);
-        }
-
-        .theme-toggle .fa-sun { display: none; }
-        .theme-toggle .fa-moon { display: block; }
-        [data-theme="dark"] .theme-toggle .fa-sun { display: block; }
-        [data-theme="dark"] .theme-toggle .fa-moon { display: none; }
-
-        /* =========================================
-           MAIN CONTAINER
-           ========================================= */
-        .auth-container {
-            background-color: var(--card-bg);
-            width: 100%;
-            max-width: 420px;
-            padding: 40px;
-            border-radius: 20px;
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-lg);
-            position: relative;
-            transition: background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
-        }
-
-        .auth-header { text-align: center; margin-bottom: 32px; }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--text-main);
-            margin-bottom: 8px;
-            letter-spacing: -0.02em;
-        }
-
-        .logo i {
-            font-size: 1.2rem;
-            background: var(--primary-color);
-            color: var(--btn-text);
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.4s ease;
-        }
-
-        .subtitle {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            font-weight: 400;
-        }
-
-        /* =========================================
-           TABS & INDICATOR
-           ========================================= */
-        .tabs-container { margin-bottom: 28px; }
-
-        .tabs {
-            display: flex;
-            position: relative;
-            border-bottom: 2px solid var(--border-color);
-        }
-
-        .tab-btn {
-            flex: 1;
-            background: none;
-            border: none;
-            padding: 12px 0;
-            font-size: 0.95rem;
-            font-weight: 500;
-            color: var(--text-muted);
-            cursor: pointer;
-            transition: color 0.3s ease;
-            position: relative;
-            z-index: 1;
-            font-family: inherit;
-        }
-
-        .tab-btn:hover { color: var(--text-main); }
-        .tab-btn.active { color: var(--text-main); font-weight: 600; }
-
-        .indicator {
-            position: absolute;
-            bottom: -2px;
-            height: 2px;
-            background-color: var(--text-main);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            border-radius: 4px;
-        }
-
-        /* =========================================
-           FORMS & ANIMATIONS
-           ========================================= */
-        .form-view { display: none; }
-
-        .form-view.active {
-            display: block;
-            animation: fadeSlideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
-
-        @keyframes fadeSlideUp {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .input-group { margin-bottom: 20px; }
-
-        .input-group label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 500;
-            margin-bottom: 8px;
-            color: var(--text-main);
-            transition: color 0.3s ease;
-        }
-
-        .input-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .input-icon {
-            position: absolute;
-            left: 14px;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            pointer-events: none;
-            transition: color 0.3s ease;
-        }
-
-        .input-group input,
-        .input-group select {
-            width: 100%;
-            padding: 12px 14px 12px 40px;
-            border: 1.5px solid var(--input-border);
-            border-radius: 10px;
-            font-size: 0.95rem;
-            font-family: inherit;
-            box-sizing: border-box;
-            background-color: var(--input-bg);
-            color: var(--text-main);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            appearance: none;
-            -webkit-appearance: none;
-        }
-
-        /* Custom Dropdown Arrow */
-        .input-group select {
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 14px center;
-            background-size: 16px;
-            padding-right: 40px;
-        }
-
-        .input-group input::placeholder {
-            color: var(--text-muted);
-            opacity: 0.7;
-        }
-
-        .input-group input:focus,
-        .input-group select:focus {
-            outline: none;
-            border-color: var(--text-main);
-            background-color: var(--card-bg);
-            box-shadow: 0 0 0 4px var(--focus-ring);
-        }
-
-        .input-wrapper:focus-within .input-icon {
-            color: var(--text-main);
-        }
-
-        /* Error Message */
-        .error-msg {
-            color: var(--error-color);
-            font-size: 0.85rem;
-            margin-bottom: 16px;
-            padding: 10px;
-            background: rgba(239, 68, 68, 0.08);
-            border-radius: 8px;
-            text-align: center;
-            display: none; /* Hidden by default */
-            border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-
-        /* Show error when JS populates it */
-        .error-msg:not(:empty) {
-            display: block;
-            animation: shake 0.4s ease;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-5px); }
-            40%, 80% { transform: translateX(5px); }
-        }
-
-        /* =========================================
-           BUTTONS & LINKS
-           ========================================= */
-        .submit-btn {
-            width: 100%;
-            padding: 13px;
-            background-color: var(--primary-color);
-            color: var(--btn-text);
-            border: none;
-            border-radius: 10px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            margin-top: 8px;
-            position: relative;
-            overflow: hidden;
-            letter-spacing: 0.01em;
-        }
-
-        /* Button Ripple Effect */
-        .submit-btn::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            transition: width 0.6s ease, height 0.6s ease;
-        }
-
-        .submit-btn:active::after {
-            width: 300px;
-            height: 300px;
-        }
-
-        .submit-btn:hover {
-            background-color: var(--primary-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        }
-
-        .submit-btn:active { transform: translateY(0); }
-
-        .alt-action {
-            display: block;
-            text-align: right;
-            margin-top: -8px;
-            margin-bottom: 20px;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-
-        .alt-action:hover {
-            color: var(--text-main);
-            text-decoration: underline;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 480px) {
-            .auth-container { padding: 28px 24px; border-radius: 16px; }
-            .theme-toggle { top: 16px; right: 16px; width: 38px; height: 38px; }
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <!-- Theme Toggle Button -->
@@ -463,9 +106,8 @@
     <script>
         /* ---------------------------------------------------------
            FRONTEND UI LOGIC 
-           (switching tabs, setting themes, frontend initialization)
         --------------------------------------------------------- */
-        
+        const API_URL = "http://127.0.0.1:8000";
         const themeToggle = document.getElementById('theme-toggle');
         const html = document.documentElement;
         
@@ -480,15 +122,18 @@
             localStorage.setItem('theme', newTheme);
         });
 
-        // Form Submission Wrappers (Prevents page reload)
+        // Redirect if already logged in
+        if (localStorage.getItem('token')) window.location.href = 'dashboard.html';
+
+        // Form Submission Wrappers
         function handleLogin(event) {
             event.preventDefault();
-            loginUser();
+            login();
         }
 
         function handleSignup(event) {
-            event.preventDefault(); // when form is submitted these prevent the whole page from refreshing
-            registerUser();
+            event.preventDefault();
+            signup();
         }
 
         // Tab Switching & Indicator Animation
@@ -497,28 +142,21 @@
             const forms = document.querySelectorAll('.form-view');
             const indicator = document.querySelector('.indicator');
             
-            // Clear any existing errors when switching tabs
-            document.querySelectorAll('.error-msg').forEach(el => {
-                el.textContent = '';
-                el.style.display = 'none';
-            });
+            // Clear errors via text content (relies on CSS :not(:empty))
+            document.querySelectorAll('.error-msg').forEach(el => el.textContent = '');
 
             tabs.forEach(tab => {
                 if (tab.dataset.tab === tabName) {
                     tab.classList.add('active');
-                    indicator.style.width = tab.offsetWidth + 'px';
-                    indicator.style.left = tab.offsetLeft + 'px';
+                    indicator.style.width = `${tab.offsetWidth}px`;
+                    indicator.style.left = `${tab.offsetLeft}px`;
                 } else {
                     tab.classList.remove('active');
                 }
             });
 
             forms.forEach(form => {
-                if (form.id === tabName + '-form') {
-                    form.classList.add('active');
-                } else {
-                    form.classList.remove('active');
-                }
+                form.classList.toggle('active', form.id === `${tabName}-form`);
             });
         }
 
@@ -527,144 +165,81 @@
             const activeTab = document.querySelector('.tab-btn.active');
             const indicator = document.querySelector('.indicator');
             if(activeTab && indicator) {
-                indicator.style.width = activeTab.offsetWidth + 'px';
-                indicator.style.left = activeTab.offsetLeft + 'px';
+                indicator.style.width = `${activeTab.offsetWidth}px`;
+                indicator.style.left = `${activeTab.offsetLeft}px`;
             }
         };
         
         window.addEventListener('load', updateIndicator);
         window.addEventListener('resize', updateIndicator);
 
-
-       
         window.addEventListener('DOMContentLoaded', () => {
-            
-            // Hide error messages dynamically when the user starts typing again
             document.getElementById('signup-form').addEventListener('input', () => {
-                document.getElementById('signup-error-message').style.display = 'none';
+                document.getElementById('signup-error-message').textContent = '';
             });
             document.getElementById('login-form').addEventListener('input', () => {
-                document.getElementById('login-error-message').style.display = 'none';
+                document.getElementById('login-error-message').textContent = '';
             });
         });
 
-
-        // window.addEventListener('beforeunload', (event) => {
-        //     localStorage.removeItem("token");
-        //     localStorage.removeItem("theme");
-        // });
-
-        
+        function showError(elementId, message) {
+            document.getElementById(elementId).textContent = message;
+        }
 
         /* ---------------------------------------------------------
            BACKEND LOGIC  
-           (handle Login/handle Signup API Calls)
         --------------------------------------------------------- */
-
-        const API_URL = "http://127.0.0.1:8000";
-
-        async function registerUser() {
-            const url = `${API_URL}/api/auth/register`;
+        
+        async function login() {
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value.trim();
             
-            const errorElement = document.getElementById("signup-error-message");
-            const emailValue = document.getElementById("signup-email").value.trim();
-            const passwordValue = document.getElementById("signup-password").value.trim();
-            const roleValue = document.getElementById("signup-role").value.trim();
-            
-            const showError = (message) => {
-                errorElement.textContent = message;
-                errorElement.style.display = 'block';
-            };
+            if (!email || !password) return showError('login-error-message', 'Please enter your email and password.');
 
-            if (emailValue === '' || passwordValue === '' || roleValue === '') {
-                showError('Please enter all the details.');
-                return;
-            }
-
-            if (passwordValue.toString().length < 6){
-                showError('Password should be atleast 6 characters long.');
-                return;
-            }
             try {
-                const credentials = {
-                    email: emailValue,      
-                    password: passwordValue,
-                    role: roleValue          
-                };
-
-                const response = await fetch(url, {
+                const res = await fetch(`${API_URL}/api/auth/login`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(credentials)
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email, password })
                 });
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    showError(errorData.detail || "An unexpected error occurred.");
-                    return; 
+                const data = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('token', data.access_token);
+                    window.location.href = 'dashboard.html';
+                } else {
+                    showError('login-error-message', data.detail || "Incorrect email or password.");
                 }
-
-                const result = await response.json();
-                alert('Account created successfully! Please log in.');
-                
-                document.getElementById("signup-form").reset();
-                switchTab('login'); // FIXED: Removed invalid object parameter
-                
-                return result;
-
             } catch (error) {
-                console.error("Network/System error:", error);
-                showError('Unable to connect to the backend server. The server might be Booting Up. Try Again after few minutes.');
+                showError('login-error-message', 'Unable to connect to the backend server.');
             }
         }
 
-        async function loginUser() {
-            const url = `${API_URL}/api/auth/login`;
+        async function signup() {
+            const name = document.getElementById('signup-name').value.trim();
+            const email = document.getElementById('signup-email').value.trim();
+            const password = document.getElementById('signup-password').value.trim();
+            const role = document.getElementById('signup-role').value.trim();
             
-            const errorElement = document.getElementById("login-error-message");
-            const emailValue = document.getElementById("login-email").value.trim();
-            const passwordValue = document.getElementById("login-password").value.trim();
-
-            const showError = (message) => {
-                errorElement.textContent = message;
-                errorElement.style.display = 'block';
-            };
-
-            if (emailValue === '' || passwordValue === '') {
-                showError('Please enter your email and password.');
-                return;
-            }
+            if (!name || !email || !password || !role) return showError('signup-error-message', 'Please enter all the details.');
+            if (password.length < 6) return showError('signup-error-message', 'Password must be at least 6 characters.');
 
             try {
-                const formData = new URLSearchParams();
-                formData.append("username", emailValue); 
-                formData.append("password", passwordValue);
-
-                const response = await fetch(url, {
+                const res = await fetch(`${API_URL}/api/auth/register`, {
                     method: 'POST',
-                    body: formData 
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name, email, password, role })
                 });
 
-                if (!response.ok) {
-                    if (response.status === 400 || response.status === 401) {
-                        showError("Incorrect email or password.");
-                        return;
-                    }
-                    showError(`Server error. Please try again later.`);
-                    return;
+                const data = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('token', data.access_token);
+                    window.location.href = 'dashboard.html';
+                } else {
+                    showError('signup-error-message', data.detail || "Signup failed.");
                 }
-
-                const result = await response.json();
-                
-                document.getElementById("login-form").reset();
-                localStorage.setItem("token", result.access_token);
-                window.location.replace("dashboard.html");
-
-                return result;
-
             } catch (error) {
-                console.error("Login system error:", error);
-                showError('Unable to connect to the backend server. The server might be Booting Up. Try Again after few minutes.');
+                showError('signup-error-message', 'Unable to connect to the backend server.');
             }
         }
     </script>
