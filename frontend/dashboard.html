@@ -20,6 +20,7 @@
             --danger: #ef4444; 
             --warning: #f59e0b;
             --sidebar-w: 260px; 
+
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; }
         body { background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
@@ -409,6 +410,8 @@
             <div class="nav-item" id="nav-publish" style="display:none;" onclick="openOverlay('publish')"><i class="fas fa-plus-circle"></i> Publish Event</div>
             <div class="nav-item" id="nav-attendance" style="display:none;" onclick="openOverlay('attendance')"><i class="fas fa-clipboard-check"></i> Manage Attendance</div>
             <div class="nav-item" id="nav-reports" style="display:none;" onclick="openOverlay('reports')"><i class="fas fa-chart-line"></i> Analytics</div>
+            <div class="nav-item" id="nav-announcement" style="display:none;" onclick="openOverlay('announcement')"><i class="fas fa-bullhorn"></i> Post Announcement</div>
+            <div class="nav-item" id="nav-club-manager" style="display:none;" onclick="openOverlay('club-manager')"><i class="fas fa-users-cog"></i> Manage Clubs</div>
         </nav>
         <div class="nav-item logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Log Out</div>
     </aside>
@@ -464,21 +467,27 @@
     <script>
         const API = "http://127.0.0.1:8000";
         let currentUser = null;
-        let state = { events: [], rsvps: [], clubs: [], notifications: [] };
+        let state = { events: [], rsvps: [], clubs: [], notifications: [], announcements: [], adminStats: null, rsvpChart: null, eventsChart: null };
+
 
         // ==========================================
         // AUTH & INITIALIZATION
         // ==========================================
         async function init() {
-            const token = localStorage.getItem('token');
-            if (!token) { window.location.replace('index.html'); return; }
+            let token = null;
+            try { token = localStorage.getItem('token'); } catch (e) { console.warn("LocalStorage unavailable"); }
+            
+            if (!token) { 
+                if (!window.location.pathname.endsWith('index.html')) window.location.replace('index.html'); 
+                return; 
+            }
 
             try {
                 const res = await authFetch('/api/users/me');
                 currentUser = await res.json();
             } catch (e) {
-                localStorage.removeItem('token');
-                window.location.href = 'index.html';
+                try { localStorage.removeItem('token'); } catch (err) {}
+                if (!window.location.pathname.endsWith('index.html')) window.location.replace('index.html');
                 return;
             }
 
@@ -486,18 +495,31 @@
             document.getElementById('user-email').innerText = currentUser.email;
             document.getElementById('current-role-label').innerText = currentUser.role.toUpperCase();
 
-            // Show role-specific nav items & Hide Bot for Admin
+            // Show role-specific nav items & Hide Bot for Admin & Coordinator
             if (currentUser.role === 'admin') {
                 document.getElementById('nav-publish').style.display = 'flex';
                 document.getElementById('nav-attendance').style.display = 'flex';
                 document.getElementById('nav-chatbot').style.display = 'none';
                 document.getElementById('top-chatbot').style.display = 'none';
+                document.getElementById('nav-announcement').style.display = 'flex';
+
+                
+                // Fetch real admin stats
+                try {
+                    state.adminStats = await (await authFetch('/api/admin/stats')).json();
+                } catch(e) {
+                    state.adminStats = null;
+                }
             } else if (currentUser.role === 'coordinator') {
                 document.getElementById('nav-reports').style.display = 'flex';
+                document.getElementById('nav-chatbot').style.display = 'none';
+                document.getElementById('top-chatbot').style.display = 'none';
+                document.getElementById('nav-club-manager').style.display = 'flex';
+
             }
 
             // Replaced generateNotifications() with real fetch
-            await Promise.all([fetchEvents(), fetchMyRsvps(), fetchClubs(), fetchNotifications()]);
+            await Promise.all([fetchEvents(), fetchMyRsvps(), fetchClubs(), fetchNotifications(), fetchAnnouncements()]);
             
             renderDashboard();
         }
@@ -518,12 +540,13 @@
         }
 
         async function authFetch(url, options = {}) {
-            const token = localStorage.getItem('token');
+            let token = null;
+            try { token = localStorage.getItem('token'); } catch (e) {}
             options.headers = { ...options.headers, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
             const res = await fetch(API + url, options);
             if (res.status === 401 || res.status === 403) {
-                localStorage.removeItem('token');
-                window.location.href = 'index.html';
+                try { localStorage.removeItem('token'); } catch (e) {}
+                if (!window.location.pathname.endsWith('index.html')) window.location.replace('index.html');
                 throw new Error('Unauthorized');
             }
             return res;
@@ -559,6 +582,11 @@
             const grid = document.getElementById('dashboard-grid');
             grid.innerHTML = ''; // Clear grid to prevent piling up
             renderStudentDashboard(grid);
+        }
+
+        async function fetchAnnouncements() {
+            try { state.announcements = await (await authFetch('/api/announcements')).json(); } 
+            catch(e) { state.announcements = []; }
         }
 
         // ==========================================
@@ -607,41 +635,58 @@
         }
 
         function renderStudentDashboard(grid) {
-                // Filter out events where attendance has been submitted (completed/finished events)
-                const activeEvents = state.events.filter(e => !e.attendance_submitted);
-                
-                // Welcome Card
-                grid.innerHTML += `
-                    <div class="card" style="grid-column: span 2; background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%); color: white; border: none;">
+            // Filter out events where attendance has been submitted (completed/finished events)
+            const activeEvents = state.events.filter(e => !e.attendance_submitted);
+            
+            // Sort so featured events appear first
+            activeEvents.sort((a, b) => (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0));
+            
+            // Welcome Card
+            grid.innerHTML += `
+                <div class="card" style="grid-column: 1 / -1; background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%); color: white; border: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; align-items: start;">
+                    <div style="display: flex; flex-direction: column; justify-content: center; height: 100%;">
                         <h2 style="margin-bottom: 0.5rem;">You have ${state.rsvps.length} upcoming events</h2>
-                        <p style="opacity: 0.9; margin-bottom: 1rem;">Don't miss out on your registered events!</p>
-                        <button class="btn" style="background: white; color: var(--primary);" onclick="openOverlay('myrsvps')">View My RSVPs</button>
-                    </div>
-                `;
-
-                // Upcoming Events Section - USE activeEvents INSTEAD OF state.events
-                const eventsHTML = activeEvents.map(e => {
-                const date = new Date(e.start_time).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-                const shortDesc = e.description.length > 60 ? e.description.substring(0, 60) + '...' : e.description;
-                
-                // Check if student already RSVPed
-                const isRsvped = state.rsvps.some(r => r.event.id === e.id);
-                const btnText = isRsvped ? `Cancel RSVP` : `RSVP (${e.rsvp_count} going)`;
-                const btnClass = isRsvped ? 'btn btn-block btn-sm btn-danger' : 'btn btn-block btn-sm';
-                const btnAction = isRsvped ? `cancelRSVP(${e.id})` : `handleRSVP(${e.id})`;
-
-                return `
-                    <div class="card event-flashcard" onclick="openEventDetails(${e.id})">
-                        <div class="card-body">
-                            <span class="badge ${e.is_featured ? 'featured' : ''}" style="margin-bottom: 0.5rem; display: inline-block;">${e.is_featured ? '⭐ Featured' : (e.club ? e.club.name : 'Club')}</span>
-                            <h3 style="margin: 0.5rem 0; font-size: 1.1rem;">${e.title}</h3>
-                            <p style="color: var(--muted); font-size: 0.85rem; margin-bottom: 0.5rem;"><i class="fas fa-clock"></i> ${date}</p>
-                            <p style="font-size: 0.9rem; color: var(--muted);">${shortDesc}</p>
+                        <p style="opacity: 0.9; margin-bottom: 1.5rem;">Don't miss out on your registered events!</p>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                            <button class="btn" style="background: white; color: var(--primary);" onclick="openOverlay('myrsvps')">View My RSVPs</button>
+                            <button class="btn btn-outline" style="border-color: white; color: var(--primary);" onclick="openOverlay('join-clubs')">Browse Clubs</button>
                         </div>
-                        <button class="${btnClass}" style="margin-top: 1rem;" onclick="event.stopPropagation(); ${btnAction}">${btnText}</button>
                     </div>
-                `;
-            }).join('');
+                    <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 8px; max-height: 250px; overflow-y: auto;">
+                        <h3 style="margin-bottom: 0.5rem; font-size: 1rem;"><i class="fas fa-bullhorn"></i> Club Announcements</h3>
+                        ${state.announcements.length > 0 ? state.announcements.map(a => `
+                            <div style="border-bottom: 1px solid rgba(255,255,255,0.2); padding: 0.5rem 0; font-size: 0.85rem;">
+                                <strong>${a.title}</strong> <span style="opacity: 0.7;">(${a.club_name})</span>
+                                <p style="margin: 0.2rem 0 0 0; opacity: 0.9;">${a.content}</p>
+                            </div>
+                        `).join('') : '<p style="opacity: 0.8; font-size: 0.85rem;">No new announcements.</p>'}
+                    </div>
+                </div>
+            `;
+
+            // Upcoming Events Section - USE activeEvents INSTEAD OF state.events
+            const eventsHTML = activeEvents.map(e => {
+            const date = new Date(e.start_time).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+            const shortDesc = e.description.length > 60 ? e.description.substring(0, 60) + '...' : e.description;
+            
+            // Check if student already RSVPed
+            const isRsvped = state.rsvps.some(r => r.event.id === e.id);
+            const btnText = isRsvped ? `Cancel RSVP` : `RSVP (${e.rsvp_count} going)`;
+            const btnClass = isRsvped ? 'btn btn-block btn-sm btn-danger' : 'btn btn-block btn-sm';
+            const btnAction = isRsvped ? `cancelRSVP(${e.id})` : `handleRSVP(${e.id})`;
+
+            return `
+                <div class="card event-flashcard" onclick="openEventDetails(${e.id})">
+                    <div class="card-body">
+                        <span class="badge ${e.is_featured ? 'featured' : ''}" style="margin-bottom: 0.5rem; display: inline-block;">${e.is_featured ? '⭐ Featured' : (e.club ? e.club.name : 'Club')}</span>
+                        <h3 style="margin: 0.5rem 0; font-size: 1.1rem;">${e.title}</h3>
+                        <p style="color: var(--muted); font-size: 0.85rem; margin-bottom: 0.5rem;"><i class="fas fa-clock"></i> ${date}</p>
+                        <p style="font-size: 0.9rem; color: var(--muted);">${shortDesc}</p>
+                    </div>
+                    <button class="${btnClass}" style="margin-top: 1rem;" onclick="event.stopPropagation(); ${btnAction}">${btnText}</button>
+                </div>
+            `;
+        }).join('');
 
             grid.innerHTML += `
                 <div class="card" style="grid-column: 1 / -1;">
@@ -657,17 +702,22 @@
         }
 
         function renderAdminDashboard(grid) {
+            const totalRsvps = state.adminStats ? state.adminStats.total_all_time : state.events.reduce((sum, e) => sum + e.rsvp_count, 0);
+            const monthRsvps = state.adminStats ? state.adminStats.total_rsvps_month : 0;
+            const activeEvents = state.events.filter(e => !e.attendance_submitted).length;
+            const completedEvents = state.events.filter(e => e.attendance_submitted).length;
+
             // Stats Cards
             grid.innerHTML += `
                 <div class="card">
                     <h3 style="color: var(--muted); font-size: 0.85rem; text-transform: uppercase;">Total Reach</h3>
-                    <h1 style="font-size: 2.5rem; color: var(--primary); margin: 0.5rem 0;">342</h1>
-                    <p style="color: var(--success);"><i class="fas fa-arrow-up"></i> RSVPs this month</p>
+                    <h1 style="font-size: 2.5rem; color: var(--primary); margin: 0.5rem 0;">${totalRsvps}</h1>
+                    <p style="color: var(--success);"><i class="fas fa-arrow-up"></i> ${monthRsvps} RSVPs this month</p>
                 </div>
                 <div class="card">
                     <h3 style="color: var(--muted); font-size: 0.85rem; text-transform: uppercase;">Active Events</h3>
-                    <h1 style="font-size: 2.5rem; color: var(--primary); margin: 0.5rem 0;">${state.events.length}</h1>
-                    <p style="color: var(--muted);">Events currently listed</p>
+                    <h1 style="font-size: 2.5rem; color: var(--primary); margin: 0.5rem 0;">${activeEvents}</h1>
+                    <p style="color: var(--muted);">${completedEvents} completed events</p>
                 </div>
                 <div class="card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
                     <i class="fas fa-plus-circle" style="font-size: 2rem; color: var(--primary); margin-bottom: 1rem;"></i>
@@ -676,8 +726,29 @@
                 </div>
             `;
 
+            // Recent Activities Pane
+            const recentEvents = [...state.events].sort((a, b) => new Date(b.start_time) - new Date(a.start_time));
+            let recentHTML = recentEvents.map(e =>  `
+                <div style="padding: 0.75rem 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong>${e.title}</strong>
+                        <p style="font-size: 0.8rem; color: var(--muted); margin: 0;">${e.club ? e.club.name : 'Club'}</p>
+                    </div>
+                    <span class="badge ${e.attendance_submitted ? 'success' : 'featured'}">${e.attendance_submitted ? 'Completed' : 'Active'}</span>
+                </div>
+            `).join('');
+
+            grid.innerHTML += `
+                <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-history" style="color: var(--primary); margin-right: 0.5rem;"></i> Recent Activities</h3>
+                    </div>
+                    ${recentHTML || '<p style="color: var(--muted);">No recent activities.</p>'}
+                </div>
+            `;
+
             // Recent Events Table Card with Delete Action
-            const recentEvents = state.events.map(e => {
+            const eventsTableRows = state.events.map(e => {
                 const isLocked = e.attendance_submitted;
                 return `
                     <tr>
@@ -710,7 +781,7 @@
                             <tr><th>Event</th><th>Club</th><th>Date</th><th>Status</th><th>Actions</th></tr>
                         </thead>
                         <tbody>
-                            ${recentEvents || '<tr><td colspan="5" style="text-align: center; color: var(--muted);">No events yet</td></tr>'}
+                            ${eventsTableRows || '<tr><td colspan="5" style="text-align: center; color: var(--muted);">No events yet</td></tr>'}
                         </tbody>
                     </table>
                 </div>
@@ -718,6 +789,8 @@
         }
 
         function renderCoordinatorDashboard(grid) {
+            const totalRsvps = state.events.reduce((sum, e) => sum + e.rsvp_count, 0);
+            
             grid.innerHTML += `
                 <div class="card">
                     <h3 style="color: var(--muted); font-size: 0.85rem; text-transform: uppercase;">Total Clubs</h3>
@@ -729,12 +802,109 @@
                     <h1 style="font-size: 2.5rem; color: var(--primary); margin: 0.5rem 0;">${state.events.length}</h1>
                     <p style="color: var(--muted);">Across all clubs</p>
                 </div>
-                <div class="card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
-                    <i class="fas fa-chart-line" style="font-size: 2rem; color: var(--primary); margin-bottom: 1rem;"></i>
-                    <h3 style="margin-bottom: 1rem;">View Full Reports</h3>
-                    <button class="btn btn-block" onclick="openOverlay('reports')">Open Analytics</button>
+                <div class="card">
+                    <h3 style="color: var(--muted); font-size: 0.85rem; text-transform: uppercase;">Total Reach</h3>
+                    <h1 style="font-size: 2.5rem; color: var(--primary); margin: 0.5rem 0;">${totalRsvps}</h1>
+                    <p style="color: var(--success);"><i class="fas fa-users"></i> Total Student RSVPs</p>
                 </div>
             `;
+
+            // Pie Charts Container
+            grid.innerHTML += `
+                <div class="card" style="grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                    <div>
+                        <h3 style="margin-bottom: 1rem; text-align: center;">RSVPs by Club</h3>
+                        <div style="position: relative; height: 250px; width: 100%;">
+                            <canvas id="rsvpsPieChart"></canvas>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 style="margin-bottom: 1rem; text-align: center;">Events by Club</h3>
+                        <div style="position: relative; height: 250px; width: 100%;">
+                            <canvas id="eventsPieChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Recent Platform Activities Pane
+            const recentEvents = [...state.events].sort((a, b) => new Date(b.start_time) - new Date(a.start_time));
+            let recentHTML = recentEvents.map(e => `
+                <div style="padding: 0.75rem 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong>${e.title}</strong>
+                        <p style="font-size: 0.8rem; color: var(--muted); margin: 0;">Organized by ${e.club ? e.club.name : 'Unknown Club'}</p>
+                    </div>
+                    <span class="badge ${e.attendance_submitted ? 'success' : 'featured'}">${e.attendance_submitted ? 'Completed' : 'Upcoming'}</span>
+                </div>
+            `).join('');
+
+            grid.innerHTML += `
+                <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-history" style="color: var(--primary); margin-right: 0.5rem;"></i> Recent Platform Activity</h3>
+                        <button class="btn btn-sm btn-outline" onclick="openOverlay('reports')">View Full Analytics</button>
+                    </div>
+                    ${recentHTML || '<p style="color: var(--muted);">No recent activities.</p>'}
+                </div>
+            `;
+
+            // Render Charts after DOM is updated
+            setTimeout(() => {
+                renderCoordinatorCharts();
+            }, 100);
+        }
+
+        function renderCoordinatorCharts() {
+            // Destroy existing charts to prevent memory leaks/errors on re-render
+            if (state.rsvpChart) state.rsvpChart.destroy();
+            if (state.eventsChart) state.eventsChart.destroy();
+
+            // 1. RSVPs by Club (Pie Chart)
+            const rsvpsByClub = {};
+            state.events.forEach(e => {
+                const clubName = e.club ? e.club.name : 'Unknown';
+                rsvpsByClub[clubName] = (rsvpsByClub[clubName] || 0) + e.rsvp_count;
+            });
+
+            const rsvpCtx = document.getElementById('rsvpsPieChart');
+            if (rsvpCtx) {
+                state.rsvpChart = new Chart(rsvpCtx.getContext('2d'), {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(rsvpsByClub),
+                        datasets: [{
+                            data: Object.values(rsvpsByClub),
+                            backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+
+            // 2. Events by Club (Doughnut Chart)
+            const eventsByClub = {};
+            state.events.forEach(e => {
+                const clubName = e.club ? e.club.name : 'Unknown';
+                eventsByClub[clubName] = (eventsByClub[clubName] || 0) + 1;
+            });
+
+            const eventsCtx = document.getElementById('eventsPieChart');
+            if (eventsCtx) {
+                state.eventsChart = new Chart(eventsCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(eventsByClub),
+                        datasets: [{
+                            data: Object.values(eventsByClub),
+                            backgroundColor: ['#06b6d4', '#84cc16', '#f97316', '#6366f1', '#14b8a6', '#e11d48'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
         }
 
         // ==========================================
@@ -781,10 +951,25 @@
                     modal.classList.add('large');
                     renderReports(body);
                     break;
-                                case 'edit-event':
+                case 'edit-event':
                     title.innerText = 'Update Event Details';
                     renderEditForm(body, data);
                     break;
+                case 'join-clubs':
+                    title.innerText = 'Browse & Join Clubs';
+                    renderJoinClubs(body);
+                    break;
+                case 'announcement':
+                    title.innerText = 'Post Announcement';
+                    renderAnnouncementForm(body);
+                    break;
+                case 'club-manager':
+                    title.innerText = 'Manage Clubs & Featured Events';
+                    modal.classList.add('large');
+                    renderClubManager(body);
+                    break;
+
+                
             }
 
             overlay.classList.add('active');
@@ -912,27 +1097,20 @@
         }
 
         function renderPublishForm(container) {
-            let opts = state.clubs.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            const adminClubs = currentUser.clubs || [];
+            if (adminClubs.length === 0) {
+                container.innerHTML = `<p style="color: var(--danger); text-align:center;">You are not assigned to any clubs. Please contact the coordinator.</p>`;
+                return;
+            }
+            let opts = adminClubs.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
             container.innerHTML = `
                 <form onsubmit="handlePublish(event)">
-                    <label>Event Title</label>
-                    <input type="text" id="p-title" placeholder="e.g., AI/ML Hackathon" required>
-                    
-                    <label>Organizing Club</label>
-                    <select id="p-club" required>${opts}</select>
-                    
-                    <label>Date & Time</label>
-                    <input type="datetime-local" id="p-time" required>
-                    
-                    <label>Description</label>
-                    <textarea id="p-desc" placeholder="Describe the event..." required></textarea>
-                    
-                    <label>Rules & Requirements</label>
-                    <textarea id="p-rules" placeholder="What should participants bring/know?" required></textarea>
-                    
-                    <button type="submit" class="btn btn-block">
-                        <i class="fas fa-paper-plane"></i> Publish Event
-                    </button>
+                    <label>Event Title</label><input type="text" id="p-title" required>
+                    <label>Organizing Club</label><select id="p-club" required>${opts}</select>
+                    <label>Date & Time</label><input type="datetime-local" id="p-time" required>
+                    <label>Description</label><textarea id="p-desc" required></textarea>
+                    <label>Rules & Requirements</label><textarea id="p-rules" required></textarea>
+                    <button type="submit" class="btn btn-block"><i class="fas fa-paper-plane"></i> Publish Event</button>
                 </form>
             `;
         }
@@ -964,7 +1142,7 @@
         }
 
 
-                function openEditEvent(eventId) {
+        function openEditEvent(eventId) {
             const eventData = state.events.find(e => e.id === eventId);
             if (!eventData) return;
             openOverlay('edit-event', eventData);
@@ -1205,70 +1383,82 @@
             container.innerHTML = html + '</tbody></table>';
         }
 
+
+
         async function renderReports(container) {
-            container.innerHTML = `
-                <div class="grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 1.5rem;">
-                    <div class="card" style="margin: 0;">
-                        <h3 style="color: var(--muted); font-size: 0.85rem;">Overall Attendance Rate</h3>
-                        <h1 id="coord-att-rate" style="color: var(--success); font-size: 2.5rem; margin: 0.5rem 0;">Loading...</h1>
-                    </div>
-                    <div class="card" style="margin: 0;">
-                        <h3 style="color: var(--muted); font-size: 0.85rem;">Top Performing Events</h3>
-                        <ul id="coord-top-events" style="margin-top: 0.5rem; list-style: none; padding: 0;"></ul>
-                    </div>
-                </div>
-                <div class="card" style="margin: 0;">
-                    <h3 style="margin-bottom: 1rem;">Events Organized per Club</h3>
-                    <div style="position: relative; height: 300px; width: 100%;">
-                        <canvas id="eventsPerClubChart"></canvas>
-                    </div>
-                </div>
-            `;
+            container.innerHTML = `<p style="text-align: center; color: var(--muted);">Loading analytics...</p>`;
 
             try {
-                // Note: Your backend has trailing spaces in keys, handling both cases
                 const res = await authFetch('/api/coordinator/reports');
                 const reports = await res.json();
                 
-                const attRate = reports.attendance_rate || reports["attendance_rate "] || "N/A";
-                const topEvents = reports.top_events || reports["top_events "] || [];
-                const eventsPerClub = reports.events_per_club || reports["events_per_club "] || [];
-
-                document.getElementById('coord-att-rate').innerText = attRate;
+                const attRate = reports.attendance_rate || "0.0%";
+                const topEvents = reports.top_events || [];
+                const eventsPerClub = reports.events_per_club || [];
                 
-                const topList = document.getElementById('coord-top-events');
-                topList.innerHTML = topEvents.map(e => `
-                    <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border); display: flex; align-items: center;">
-                        <i class="fas fa-trophy" style="color: #d97706; margin-right: 0.5rem;"></i>
-                        ${e}
-                    </li>
-                `).join('');
+                // New real metrics
+                const totalRsvps = reports.total_rsvps || 0;
+                const activeEvents = reports.active_events || 0;
+                const completedEvents = reports.completed_events || 0;
+
+                container.innerHTML = `
+                    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                        <div class="card" style="margin: 0; text-align: center;">
+                            <h3 style="color: var(--muted); font-size: 0.85rem;">Overall Attendance Rate</h3>
+                            <h1 style="color: var(--success); font-size: 2rem; margin: 0.5rem 0;">${attRate}</h1>
+                        </div>
+                        <div class="card" style="margin: 0; text-align: center;">
+                            <h3 style="color: var(--muted); font-size: 0.85rem;">Total Platform RSVPs</h3>
+                            <h1 style="color: var(--primary); font-size: 2rem; margin: 0.5rem 0;">${totalRsvps}</h1>
+                        </div>
+                        <div class="card" style="margin: 0; text-align: center;">
+                            <h3 style="color: var(--muted); font-size: 0.85rem;">Event Status</h3>
+                            <h1 style="color: var(--warning); font-size: 2rem; margin: 0.5rem 0;">${activeEvents} <span style="font-size: 1rem; color: var(--muted);">Active</span></h1>
+                            <p style="color: var(--success); font-size: 0.9rem; margin:0;">${completedEvents} Completed</p>
+                        </div>
+                    </div>
+
+                    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                        <div class="card" style="margin: 0;">
+                            <h3 style="margin-bottom: 1rem;"><i class="fas fa-trophy" style="color: #d97706; margin-right: 0.5rem;"></i> Top Performing Events</h3>
+                            <ul id="coord-top-events" style="list-style: none; padding: 0;">
+                                ${topEvents.length > 0 ? topEvents.map(e => `
+                                    <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border); display: flex; align-items: center;">
+                                        <i class="fas fa-star" style="color: var(--primary); margin-right: 0.5rem;"></i> ${e}
+                                    </li>
+                                `).join('') : '<p style="color: var(--muted);">No RSVP data yet.</p>'}
+                            </ul>
+                        </div>
+                        <div class="card" style="margin: 0;">
+                            <h3 style="margin-bottom: 1rem;"><i class="fas fa-chart-pie" style="color: var(--primary); margin-right: 0.5rem;"></i> Events Organized per Club</h3>
+                            <div style="position: relative; height: 200px; width: 100%;">
+                                <canvas id="eventsPerClubChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                `;
 
                 if (eventsPerClub.length > 0) {
                     const ctx = document.getElementById('eventsPerClubChart').getContext('2d');
                     new Chart(ctx, {
-                        type: 'bar',
+                        type: 'doughnut',
                         data: {
-                            labels: eventsPerClub.map(item => (item.club || item["club "] || "").trim()),
+                            labels: eventsPerClub.map(item => item.club),
                             datasets: [{
-                                label: 'Events Count',
-                                data: eventsPerClub.map(item => item.count || item["count "] || 0),
-                                backgroundColor: 'rgba(79, 70, 229, 0.6)',
-                                borderColor: 'rgba(79, 70, 229, 1)',
-                                borderWidth: 1,
-                                borderRadius: 6
+                                data: eventsPerClub.map(item => item.count),
+                                backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'],
+                                borderWidth: 1
                             }]
                         },
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
-                            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
-                            plugins: { legend: { display: false } }
+                            plugins: { legend: { position: 'bottom' } }
                         }
                     });
                 }
             } catch (e) {
-                container.innerHTML += '<p style="color: var(--danger); margin-top: 1rem;">Failed to load coordinator reports. Make sure you are logged in as a coordinator.</p>';
+                container.innerHTML = '<p style="color: var(--danger); margin-top: 1rem;">Failed to load coordinator reports. Make sure you are logged in as a coordinator.</p>';
             }
         }
 
@@ -1342,6 +1532,195 @@
                 showToast("Network Error", 'error');
             }
             
+        }
+
+        // ==========================================
+        //  NEW OVERLAYS AND FUNCTIONS
+        // ==========================================
+
+        // --- STUDENT: JOIN CLUBS ---
+        function renderJoinClubs(container) {
+            const joinedIds = (currentUser.clubs || []).map(c => c.id);
+            container.innerHTML = state.clubs.map(c => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid var(--border);">
+                    <strong>${c.name}</strong>
+                    ${joinedIds.includes(c.id) 
+                        ? `<button class="btn btn-sm btn-danger" onclick="leaveClub(${c.id})">Leave Club</button>` 
+                        : `<button class="btn btn-sm" onclick="joinClub(${c.id})">Join Club</button>`}
+                </div>
+            `).join('');
+        }
+
+        async function leaveClub(clubId) {
+            if(!confirm("Are you sure you want to leave this club?")) return;
+            try {
+                const res = await authFetch(`/api/clubs/${clubId}/leave`, { method: 'DELETE' });
+                if(res.ok) {
+                    showToast("Left Club!", "success");
+                    const meRes = await authFetch('/api/users/me');
+                    currentUser = await meRes.json();
+                    await Promise.all([fetchEvents(), fetchAnnouncements()]);
+                    closeOverlay();
+                    renderDashboard();
+                } else {
+                    const err = await res.json();
+                    showToast(err.detail || "Error", "error");
+                }
+            } catch(e) { showToast("Error", "error"); }
+        }
+
+        async function joinClub(clubId) {
+            try {
+                const res = await authFetch(`/api/clubs/${clubId}/join`, { method: 'POST' });
+                if(res.ok) {
+                    showToast("Joined Club! Refreshing...", "success");
+                    const meRes = await authFetch('/api/users/me');
+                    currentUser = await meRes.json();
+                    await Promise.all([fetchEvents(), fetchAnnouncements()]);
+                    closeOverlay();
+                    renderDashboard();
+                }
+            } catch(e) { showToast("Error", "error"); }
+        }
+
+        // --- ADMIN: POST ANNOUNCEMENT ---
+        function renderAnnouncementForm(container) {
+            const adminClubs = currentUser.clubs || [];
+            let opts = adminClubs.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            container.innerHTML = `
+                <form onsubmit="postAnnouncement(event)">
+                    <label>Select Club</label><select id="ann-club" required>${opts}</select>
+                    <label>Title</label><input type="text" id="ann-title" required>
+                    <label>Message</label><textarea id="ann-content" required></textarea>
+                    <button type="submit" class="btn btn-block">Post Announcement</button>
+                </form>
+            `;
+        }
+
+        async function postAnnouncement(e) {
+            e.preventDefault();
+            const club_id = document.getElementById('ann-club').value;
+            const payload = { title: document.getElementById('ann-title').value, content: document.getElementById('ann-content').value };
+            try {
+                const res = await authFetch(`/api/clubs/${club_id}/announcements`, { method: 'POST', body: JSON.stringify(payload) });
+                if (res.ok) { showToast("Announcement Posted!", "success"); closeOverlay(); }
+            } catch(err) { showToast("Error", "error"); }
+        }
+
+        // --- COORDINATOR: MANAGE CLUBS & FEATURED EVENTS ---
+        function renderClubManager(container) {
+            container.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                    <div class="card" style="margin:0; background:var(--bg);">
+                        <h3 style="margin-bottom:1rem;">Create New Club</h3>
+                        <input type="text" id="new-club-name" placeholder="Club Name">
+                        <button class="btn btn-block" onclick="createClub()">Create</button>
+                    </div>
+                    <div class="card" style="margin:0; background:var(--bg);">
+                        <h3 style="margin-bottom:1rem;">Assign Admin to Club</h3>
+                        <select id="assign-club-id">${state.clubs.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}</select>
+                        <input type="email" id="assign-admin-email" placeholder="Admin Email">
+                        <button class="btn btn-block" onclick="assignAdmin()">Assign</button>
+                    </div>
+                    <div class="card" style="margin:0; background:var(--bg);">
+                        <h3 style="margin-bottom:1rem;">Revoke Admin Access</h3>
+                        <select id="revoke-club-id">${state.clubs.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}</select>
+                        <input type="email" id="revoke-admin-email" placeholder="Admin Email to Revoke">
+                        <button class="btn btn-block btn-danger" onclick="revokeAdmin()">Revoke Access</button>
+                    </div>
+                </div>
+                <h3 style="margin-bottom:1rem;">Manage Clubs</h3>
+                <div id="clubs-list" style="margin-bottom: 2rem;">
+                    ${state.clubs.map(c => `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border);">
+                            <div style="flex: 1;">
+                                <strong>${c.name}</strong>
+                                <button class="btn btn-sm btn-outline" style="margin-left: 1rem;" onclick="openEditClub(${c.id}, '${c.name.replace(/'/g, "\\'")}')">Edit</button>
+                                <button class="btn btn-sm btn-danger" style="margin-left: 0.5rem;" onclick="deleteClub(${c.id})">Delete</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <h3 style="margin-bottom:1rem;">Manage Featured Events</h3>
+                <div id="coord-events-list">${state.events.map(e => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border);">
+                        <div><strong>${e.title}</strong> <span class="badge">${e.club ? e.club.name : ''}</span></div>
+                        <button class="btn btn-sm ${e.is_featured ? 'btn-danger' : 'btn-outline'}" onclick="toggleFeatured(${e.id})">
+                            ${e.is_featured ? 'Unfeature' : 'Feature'}
+                        </button>
+                    </div>
+                `).join('')}</div>
+            `;
+        }
+
+        async function deleteClub(clubId) {
+            if(!confirm("Are you sure you want to delete this club? This will also delete all its events.")) return;
+            try {
+                const res = await authFetch(`/api/clubs/${clubId}`, { method: 'DELETE' });
+                if(res.ok) {
+                    showToast("Club Deleted!", "success");
+                    await fetchClubs(); await fetchEvents();
+                    renderClubManager(document.getElementById('overlay-body'));
+                    renderDashboard();
+                } else {
+                    const err = await res.json();
+                    showToast(err.detail || "Error", "error");
+                }
+            } catch(e) { showToast("Error", "error"); }
+        }
+
+        function openEditClub(clubId, currentName) {
+            const newName = prompt("Enter new club name:", currentName);
+            if(newName && newName !== currentName) updateClub(clubId, newName);
+        }
+
+        async function updateClub(clubId, name) {
+            try {
+                const res = await authFetch(`/api/clubs/${clubId}`, { method: 'PUT', body: JSON.stringify({name}) });
+                if(res.ok) {
+                    showToast("Club Updated!", "success");
+                    await fetchClubs();
+                    renderClubManager(document.getElementById('overlay-body'));
+                    renderDashboard();
+                } else {
+                    const err = await res.json();
+                    showToast(err.detail || "Error", "error");
+                }
+            } catch(e) { showToast("Error", "error"); }
+        }
+
+        async function revokeAdmin() {
+            const club_id = document.getElementById('revoke-club-id').value;
+            const email = document.getElementById('revoke-admin-email').value;
+            if(!email) return showToast("Enter admin email", "error");
+            try {
+                const res = await authFetch(`/api/clubs/${club_id}/revoke-admin?admin_email=${encodeURIComponent(email)}`, { method: 'DELETE' });
+                if(res.ok) showToast("Admin Access Revoked!", "success");
+                else {
+                    const err = await res.json();
+                    showToast(err.detail || "Error", "error");
+                }
+            } catch(e) { showToast("Error", "error"); }
+        }
+
+        async function createClub() {
+            const name = document.getElementById('new-club-name').value;
+            if(!name) return;
+            const res = await authFetch('/api/clubs', { method: 'POST', body: JSON.stringify({name}) });
+            if(res.ok) { showToast("Club Created!", "success"); await fetchClubs(); renderClubManager(document.getElementById('overlay-body')); }
+        }
+
+        async function assignAdmin() {
+            const club_id = document.getElementById('assign-club-id').value;
+            const email = document.getElementById('assign-admin-email').value;
+            const res = await authFetch(`/api/clubs/${club_id}/assign-admin?admin_email=${encodeURIComponent(email)}`, { method: 'POST' });
+            if(res.ok) showToast("Admin Assigned!", "success");
+            else { const err = await res.json(); showToast(err.detail || "Error", "error"); }
+        }
+
+        async function toggleFeatured(eventId) {
+            const res = await authFetch(`/api/events/${eventId}/feature`, { method: 'POST' });
+            if(res.ok) { showToast("Updated!", "success"); await fetchEvents(); renderClubManager(document.getElementById('overlay-body')); renderDashboard(); }
         }
 
         // ==========================================
