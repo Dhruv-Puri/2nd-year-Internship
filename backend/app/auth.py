@@ -7,9 +7,13 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models
 import os
+from dotenv import load_dotenv
 
-SECRET_KEY = os.getenv("SECRET_KEY") # removed the default key
-ALGORITHM = os.getenv("ALGORITHM") # changed the algorithm and removed from here
+
+load_dotenv() # loading the env variables
+
+SECRET_KEY = os.getenv("SECRET_KEY") 
+ALGORITHM = os.getenv("ALGORITHM") 
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 
@@ -17,7 +21,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 # fallback logic if the SECRET_KEY is not initialised in the .env file
 if not SECRET_KEY or not ALGORITHM: 
     raise ValueError("CRITICAL ERROR: environment variable is not set!")
-
 
 
 
@@ -43,6 +46,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     
     user = db.query(models.User).filter(models.User.email == email).first()
     if user is None: raise credentials_exception
+
     return user
 
 def require_role(required_role: str):

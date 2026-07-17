@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func  
 
 from datetime import datetime, timedelta , timezone
 from database import engine, get_db, Base
@@ -11,7 +11,7 @@ import models, schemas
 from auth import verify_password , get_password_hash , verify_admin_club_access , create_access_token , get_current_user , require_role 
 from email_extention import send_email_stub , create_notification , cleanup_past_events
 
-import io, csv
+import io, csv , random
 
 
 app = FastAPI(title="EventHub Secured API")
@@ -33,23 +33,73 @@ Base.metadata.create_all(bind=engine)
 # ==========================================
 # 1. AUTH ENDPOINTS
 # ==========================================
-
-
-@app.post("/api/auth/register", response_model=schemas.Token)
+@app.post("/api/auth/register")
 def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
+
+    # Check if an active, verified user already exists
     if db.query(models.User).filter(models.User.email == user_data.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
+
+
+
+    # Clear any old, expired, or pending OTPs for this email to avoid conflicts
+    db.query(models.OTP).filter(models.OTP.email == user_data.email).delete()
+
+    
+    # Generate OTP and hash password
+    otp_code = str(random.randint(100000, 999999))
+    hashed_pw = get_password_hash(user_data.password)
+    
+    # Store pending user data in the OTP table instead of the User table
+    otp_record = models.OTP(
+        email=user_data.email,
+        code=otp_code,
+        expires_at=datetime.now() + timedelta(minutes=15),
+        name=user_data.name,
+        role=user_data.role,
+        hashed_password=hashed_pw
+    )
+    db.add(otp_record)
+    db.commit()
+    send_email_stub(user_data.email, "Your OTP Code", f"Your OTP is {otp_code}. It expires in 15 minutes.", db)
+    return {"status": "success", "message": "OTP sent to email. Please verify to create your account."}
+
+@app.post("/api/auth/verify-otp", response_model=schemas.Token)
+def verify_otp(data: schemas.OTPVerify, db: Session = Depends(get_db)):
+    # Get the latest OTP record for this email
+    otp_record = db.query(models.OTP).filter(models.OTP.email == data.email).order_by(models.OTP.id.desc()).first()
+    
+    if not otp_record:
+        raise HTTPException(status_code=400, detail="No OTP found. Please register again.")
+    if otp_record.expires_at < datetime.now():
+        db.delete(otp_record)
+        db.commit()
+        raise HTTPException(status_code=400, detail="OTP expired. Please register again.")
+    if otp_record.code != data.otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP.")
+    
+    # Safety check: ensure user wasn't created in the meantime
+    if db.query(models.User).filter(models.User.email == data.email).first():
+        db.query(models.OTP).filter(models.OTP.email == data.email).delete()
+        db.commit()
+        raise HTTPException(status_code=400, detail="Account already exists. Please login.")
+        
+    # Create the actual user account using the stored pending data
     new_user = models.User(
-        email=user_data.email, name=user_data.name, role=user_data.role,
-        hashed_password=get_password_hash(user_data.password)
+        email=otp_record.email,
+        name=otp_record.name,
+        role=otp_record.role,
+        hashed_password=otp_record.hashed_password
     )
 
-    # sending a verification OTP via email -
-
-
     db.add(new_user)
+    
+    # Clean up ALL OTPs for this email to save space
+
+    db.query(models.OTP).filter(models.OTP.email == data.email).delete()
     db.commit()
     db.refresh(new_user)
+    
     token = create_access_token(data={"sub": new_user.email})
     return {"access_token": token, "token_type": "bearer"}
 
@@ -61,9 +111,57 @@ def login(user_data: schemas.UserLogin, db: Session = Depends(get_db)):
     token = create_access_token(data={"sub": user.email})
     return {"access_token": token, "token_type": "bearer"}
 
+
+
 @app.get("/api/users/me", response_model=schemas.UserResponse)
 def read_users_me(current_user: models.User = Depends(get_current_user)):
     return current_user
+
+
+
+
+
+
+# Password reset endpoints -
+@app.post("/api/auth/forgot-password")
+def forgot_password(email: str, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Email not found")
+    
+    # Clear old OTPs for this email
+    db.query(models.OTP).filter(models.OTP.email == email).delete()
+    otp_code = str(random.randint(100000, 999999))
+    
+    # Reusing OTP model. Passing "FORGOT" as dummy data to satisfy schema without altering DB
+    otp_record = models.OTP(
+        email=email,
+        code=otp_code,
+        expires_at=datetime.now() + timedelta(minutes=15),
+        name="FORGOT", role="FORGOT", hashed_password="FORGOT"
+    )
+    db.add(otp_record)
+    db.commit()
+    
+    send_email_stub(email, "Password Reset OTP", f"Your OTP to reset your password is {otp_code}.", db)
+    return {"status": "success", "message": "OTP sent to email."}
+
+@app.post("/api/auth/reset-password")
+def reset_password(data: schemas.PasswordReset, db: Session = Depends(get_db)):
+    otp_record = db.query(models.OTP).filter(models.OTP.email == data.email).order_by(models.OTP.id.desc()).first()
+    
+    if not otp_record or otp_record.code != data.otp or otp_record.expires_at < datetime.now():
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP.")
+        
+    user = db.query(models.User).filter(models.User.email == data.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+        
+    user.hashed_password = get_password_hash(data.new_password)
+    db.delete(otp_record)
+    db.commit()
+    
+    return {"status": "success", "message": "Password reset successful."} 
 
 # ==========================================
 # 2. STUDENT ENDPOINTS
@@ -104,7 +202,8 @@ def rsvp_event(event_id: int, user: models.User = Depends(get_current_user), db:
 
     db.add(models.RSVP(user_id=user.id, event_id=event_id))
     db.commit()
-    send_email_stub(user.email, f"RSVP Confirmed: {event.title}", f"You are registered for {event.title}!")
+    # <--- PASS DB TO STUB ---
+    send_email_stub(user.email, f"RSVP Confirmed: {event.title}", f"You are registered for {event.title}!", db)
     create_notification(db, user.id, f"RSVP Confirmed: You are registered for {event.title}!")
     return {"status": "success", "message": "RSVP confirmed"}
 
@@ -228,11 +327,10 @@ def mark_attendance(event_id: int, data: schemas.AttendanceMark, admin: models.U
     if not rsvp.attendance:
         rsvp.attendance = models.Attendance(rsvp_id=rsvp.id, is_present=data.is_present, checked_in_at=datetime.now())
     else:
-        rsvp.attendance.is_present = data.is_present # Fixed typo here
-        
+        rsvp.attendance.is_present = data.is_present
     db.commit()
     
-    # NO notifications or emails sent here anymore!
+    
     return {"status": "success"}
 
 @app.post("/api/admin/events/{event_id}/submit-attendance")
@@ -253,14 +351,13 @@ def submit_attendance(event_id: int, admin: models.User = Depends(require_role("
     
     # 2. Notify ALL students who RSVP'd
     for rsvp in event.rsvps:
-        # Determine if they were marked present or absent
         is_present = rsvp.attendance.is_present if rsvp.attendance else False
         status_text = "Present" if is_present else "Absent"
-        
         send_email_stub(
             rsvp.user.email, 
             f"Attendance Finalized: {event.title}", 
-            f"Your attendance for {event.title} has been finalized as {status_text}."
+            f"Your attendance for {event.title} has been finalized as {status_text}.",
+            db # <--- PASS DB TO STUB
         )
         create_notification(
             db, 
@@ -490,6 +587,62 @@ def get_announcements(user: models.User = Depends(get_current_user), db: Session
 
 
 
+# toggling the email send logic:
+@app.put("/api/system/toggle-email")
+def toggle_email(toggle : bool, db : Session = Depends(get_db)):
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    today_quota = db.query(models.EmailQuota).filter(models.EmailQuota.date == today_str).first()
+    
+    if not today_quota:
+        today_quota = models.EmailQuota(date=today_str, count=0)
+        db.add(today_quota)
+        db.commit()
+        db.refresh(today_quota)
+
+    today_quota.is_valid = toggle
+        
+    db.commit()
+    return {"Email Recieving Status":today_quota.is_valid}
+
+# ==========================================
+# SYSTEM / AUTO-CALLED ENDPOINTS
+# ==========================================
+# We can trigger this via an Azure Logic App, Cron Job, or GitHub Actions every hour
+
+@app.post("/api/system/send-reminders")
+def send_24h_reminders(db: Session = Depends(get_db)):
+    now = datetime.now()
+    window_start = now + timedelta(hours=23)
+    window_end = now + timedelta(hours=25)
+    
+    # should only be triggered once a day. else raise an error
+
+
+
+    # Find events happening in ~24h that haven't had reminders sent yet
+    events = db.query(models.Event).filter(
+        models.Event.start_time.between(window_start, window_end),
+        models.Event.reminder_sent == False
+    ).all()
+    
+    for event in events:
+        for rsvp in event.rsvps:
+            send_email_stub(
+                rsvp.user.email,
+                f"Reminder: {event.title} is tomorrow!",
+                f"Don't forget, {event.title} is starting soon.",
+                db
+            )
+        event.reminder_sent = True
+        
+    if events:
+        db.commit()
+        
+    return {"status": "success", "reminders_sent": True}
+
+
+
+
 
 # ==========================================
 # SEED DATA
@@ -500,9 +653,9 @@ def seed_data():
     if db.query(models.Club).count() == 0:
         db.add_all([models.Club(name="Tech Club"), models.Club(name="Lit Club")])
         db.commit()
-        # db.add_all([
-        #     models.Event(title="AI/ML Hackathon", club_id=1, start_time=datetime(2026, 7, 10, 17, 0), description="Build AI.", rules="Bring laptop.", is_featured=True),
-        #     models.Event(title="Debate Championship", club_id=2, start_time=datetime(2026, 7, 13, 15, 0), description="Debate.", rules="Formal attire.", is_featured=False)
-        # ])
-        # db.commit()
+        db.add_all([
+            models.Event(title="AI/ML Hackathon", club_id=1, start_time=datetime(2026, 7, 10, 17, 0), description="Build AI.", rules="Bring laptop.", is_featured=True),
+            models.Event(title="Debate Championship", club_id=2, start_time=datetime(2026, 7, 13, 15, 0), description="Debate.", rules="Formal attire.", is_featured=False)
+        ])
+        db.commit()
     db.close()
