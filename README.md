@@ -36,7 +36,7 @@
 | **Database** | PostgreSQL | Robust relational engine for enforcing strict constraints across Users, Events, and RSVPs. |
 | **Auth Layer** | JWT + Bcrypt | Secure, stateless token-based authentication paired with industry-standard cryptographic hashing. |
 | **AI/RAG Engine** | HuggingFace Spaces | Dedicated microservice environment to prevent ML inference from blocking core API threads. |
-| **Cloud Hosting** | Azure (App Service + Static Web Apps) | Platform-as-a-Service (PaaS) deployment that cleanly decouples frontend and backend infrastructure. |
+| **Cloud Hosting** | Azure (Web App Service +  Static Storage Account) | Platform-as-a-Service (PaaS) deployment that cleanly decouples frontend and backend infrastructure. |
 
 #### Also planning to keep the JWT in `localStorage` for the final Azure deployment, or are you considering migrating it to `HttpOnly` cookies for enhanced XSS protection before the final week
 ---
