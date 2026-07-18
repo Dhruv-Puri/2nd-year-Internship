@@ -60,7 +60,8 @@ succesfully connected the backend to frontend and tested the logic , now the use
 also added smoother UI design by auto clearing the previous details and also enabled more safer authentication / validation by implementing newer logic to add guardrails and also prevent leakage of sensitive information
 
 
-(3-06-26)
+(3-06-26
+
 Fixed the login and register logic as when the user used to register and then forwarded to login , the user was able to access the dashboard even when it exited due to jwt token limit
 added methods like window.href.replace() to prevent the history stack and preventing user from going back to login/signup page
 made the logic to store the jwt token fetched from the backend into localStorage (might replace in future with cookies or sessionStorage to make it more secure)
@@ -81,6 +82,7 @@ Rest....
 
 
 (6-06-26)
+
 Updated the dashboard UI , created a simple sidebar for navigation with prefilled details that are updated via javascript when real details are fetched
 fixed some bugs like user logged in even after logout , and updated the api routes that were causing problems
 bugs related to not being able to fetch user details , login failing , dashboard not correctly connected with the backend were all fixed and code is still in progress for now
@@ -88,12 +90,14 @@ made an authFetch function as well that adds the token to the request while fetc
 
 
 (7-06-26)
+
 Added a new Table in the database used to store the state of program like some important variables that need to be cached on startup or even a the list valid email domains that can be changed dynamically from the admin interface later to prevent sign ups from unauthorized users without university mail
 formatted the whole index.html and cleaned the whole code, now instead of alerts it uses a dynamically rendered area above the fields to show what is wrong to enhance the user experience
 made updates to backend aswell including fixing the register path again
 
 
 (8-06-26)
+
 work on the dashboard is under progress making changes to it yet not uploaded yet, uploaded the index.html with completely reimagined interface, 
 the core is same just the looks is different
 also added themes sections now the user can choose themes from the login itself , fixed some minor bugs arised during testing
@@ -101,6 +105,7 @@ learnt concepts like relationships in sqlalchemy aswell as model = Dict_config f
 
 
 (9-06-26)
+
 Explored the mailing services to choose which one would suit the best for sending mails via api for mini extension , 
 worked on the dashboard.html - added styling , make three panels - student , admin and coordinator
 completed the full basic UI for all the windows and connected them via a pseudo backend for now , would work on more endpoints and information transfer now
@@ -108,7 +113,35 @@ made sure the app retains it's state while debugging , connected via a small sql
 
 
 (10-06-26)
-In the student pane if I wanted to cancel rsvp , then I could no longer search without refreshing the page fixed it , 
-Also events like ai/ml whose date has already passed still shows, and can be rsvpd which should not have been the case,
-Admin was also able to create an event in the past before today’s date and time,so I added a buffer of 3 hours minimum to create the event from current time ,
-Admin is also now able to update the details of the event 
+
+Fixed the Frontend dashboard - Implemented admin event deletion, hid bot for admins, real notifications, auto-delete past events with missed-event alerts, empty-search auto-fetch, retractable sidebar, worked on responsiveness ,fixed notification alignment, and added search button to prevent stacking. Fixed SQLAlchemy table names, blocked past-event RSVPs, and filtered expired events. enforced a 3-hour creation buffer, added an event update API/UI, and displayed backend errors via toasts. Finally, removed hardcoded seed data and fixed the locked search bar bug by auto-closing the overlay after RSVP cancellation.
+
+(11-06-26)
+
+added a database flag to lock finalized events. Admins get notifications for updates and deletes, and can lock attendance, hiding events from students while sending bulk status emails. We fixed student notifications to show event names instead of IDs. To prevent race conditions, added strict backend guardrails and frontend auto-recovery, seamlessly disabling Edit and Delete buttons and blocking stale RSVP cancellations without requiring hard page refreshes.
+
+(12-06-26)
+
+replaced hardcoded metrics with real database queries for accurate analytics and charts.  implemented a strict club membership system where students join specific clubs, coordinators create clubs and assign admins, and admins manage only their allotted clubs.  added an announcements feature, enabled coordinators to highlight featured events, and enforced robust backend access controls to strictly isolate sensitive data and automatically expel unauthorized users.
+
+(13-06-26)
+
+Backend endpoints were added to update and delete clubs, revoke admin access, and allow students to leave clubs. Frontend code was modified to resolve a Firefox continuous refresh loop by wrapping local storage calls in safe error blocks. Array slice limits were removed across admin and coordinator dashboards to render all fetched activities instead of just the first few. Sorting logic was implemented to ensure featured events display first for students. The club management interface was updated with new controls.
+
+(14-06-26)
+
+To the Index.html - Added dark and light themes, tab animations, and layout. The fetch requests were corrected to properly send JSON payloads for both login and registration. The signup function now includes the missing name parameter and automatically redirects to the dashboard upon success. Finally, the methods were significantly shortened, and a token check bypasses user authentication.
+
+(15-06-26)
+
+The admin dashboard was secured by filtering fetched events to only show clubs the admin manages, preventing unauthorized access errors. The coordinator's club management interface was fixed by correcting flexbox alignment for buttons and resolving a silent failure in the edit function by switching to ID-based lookups . Added The email sending logic and updated to include Azure ACS integration with a daily quota limit of 10 emails, tracked via a new EmailQuota database model.  An OTP-based registration system was implemented, storing pending user details in an OTP model instead of creating inactive users immediately. This prevents database clutter and allows re-registration if verification fails.
+
+(16-06-26)
+
+The frontend index.html received an OTP verification overlay with error handling. Finally, the sender address configuration was debugged to resolve Azure API validation errors. Added a responsive email toggle switch to index.html that defaults to false, triggers once on load, and uses the prebuilt toggle-email endpoint. Implemented state persistence by adding a saved_count column to EmailQuota so toggling restores the previous email stage instead of resetting to nine. Created a forgot password flow reusing existing OTP infrastructure with dedicated backend endpoints for sending reset codes and updating passwords. Integrated green success styling into overlays using existing error message functions without creating new UI components or disrupting current logic.
+
+(17-06-26)
+
+Dashboard themes were integrated using CSS variables mapped to existing layout classes. Hardcoded white backgrounds were replaced with theme-aware variables for cards, modals, and inputs. The theme selector was repositioned from a fixed overlay into the top bar’s header actions, aligning inline with notification buttons. Color palettes for ocean, forest, and sunset themes were softened to pastel backgrounds while retaining dark and light modes. Mobile responsiveness was updated to collapse the theme button into a circular icon, preserving all original dashboard functionality and structure.
+
+
