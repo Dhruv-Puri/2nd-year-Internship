@@ -38,8 +38,104 @@
 | **AI/RAG Engine** | HuggingFace Spaces | Dedicated microservice environment to prevent ML inference from blocking core API threads. |
 | **Cloud Hosting** | Azure (Web App Service +  Static Storage Account) | Platform-as-a-Service (PaaS) deployment that cleanly decouples frontend and backend infrastructure. |
 
-#### Also planning to keep the JWT in `localStorage` for the final Azure deployment, or are you considering migrating it to `HttpOnly` cookies for enhanced XSS protection before the final week
+
+## 🏗️ Architecture Diagram
+```mermaid
+graph TD
+    User((User Browser))
+    subgraph Azure Frontend
+        SWA[Azure Storage Account<br/>Static Website Hosting<br/>HTML/CSS/JS]
+    end
+    subgraph Azure Backend
+        API[Azure App Service<br/>FastAPI Container]
+    end
+    subgraph Azure Data & Services
+        DB[(Azure Database<br/>for PostgreSQL)]
+        ACS[Azure Communication<br/>Services]
+    end
+
+    User -->|Requests UI| SWA
+    User -->|REST / Bearer JWT| API
+    API -->|Read/Write Data| DB
+    API -->|Send OTPs & Reminders| ACS
+```
+
 ---
+## 🚀 Quickstart
+---
+A reviewer must be able to go from `git clone` to running product in < 20 minutes.
 
+### Prerequisites
+- Python 3.11+
+- PostgreSQL (Local or Docker)
+- Docker & Docker Compose (Optional, for containerized testing)
 
-## Note: rest of the details are added in the github issue and doc/ADR_001.md)
+### Install
+```bash
+# 1. Clone the repository
+git clone <your-repo-url>
+cd eventhub
+
+# 2. Create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# 3. Install dependencies
+pip install -r requirements.txt
+```
+
+### Configure Environment
+Create a `.env` file in the root directory based on `.env.example`:
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/eventhub"
+SECRET_KEY="your-super-secret-jwt-key"
+ALGORITHM="HS256"
+ACS_CONNECTION_STRING="your-azure-communication-services-connection-string"
+SENDER_EMAIL="your-verified-azure-sender-email"
+```
+
+### Run
+```bash
+# Start the FastAPI server
+uvicorn backend.app.main:app --reload
+```
+*The API will be available at `http://127.0.0.1:8000`. Open `frontend/index.html` in your browser (via Live Server) to interact with the UI.*
+
+### Test
+```bash
+# Run the pytest suite to validate backend guardrails and auth flows
+pytest
+```
+
+## 📊 Data Sources
+The application uses synthetic seed data generated automatically on startup (`seed_data` function in `main.py`) to populate initial Clubs and Events for immediate testing and demonstration purposes.
+
+## 📂 Architecture Decision Records (ADRs)
+All major architectural choices are documented in the `/docs` directory:
+- [ADR-001: Decoupled Vanilla JS Frontend with JWT LocalStorage](./docs/ADR-001.md)
+- [ADR-002: Unified Azure PaaS Ecosystem for Full-Stack Hosting](./docs/ADR-002.md)
+- [ADR-003: Azure Communication Services (ACS) for Transactional Emails](./docs/ADR-003.md)
+
+## ✨ Mini-Extension: Automated Notification Pipeline
+For the Week 3 Mini-Extension, I moved beyond simple "stubbed" console logs and integrated a real, production-grade transactional email pipeline using **Azure Communication Services (ACS)**. 
+- **Automated Workflows:** Sends real emails for RSVP confirmations, Attendance Finalization receipts, and cron-triggerable 24-hour reminder blasts.
+- **OTP Security:** Reused the ACS infrastructure to build a secure, time-bound OTP verification flow for new user registrations and password resets.
+- **Abuse Prevention:** Engineered an `EmailQuota` database model that hard-limits the system to 10 emails per day, alongside a global frontend toggle switch to instantly enable/disable the email pipeline for demo environments.
+
+## ⚠️ Known Limitations
+1. **XSS Vulnerability Surface:** JWTs are currently stored in `localStorage` for ease of cross-origin decoupled testing. In a production environment, these should be migrated to `HttpOnly` cookies.
+2. **Synchronous Email Sending:** The Azure ACS API calls are currently synchronous. In a production system, these should be offloaded to FastAPI `BackgroundTasks` or an Azure Service Bus queue to prevent blocking the main API thread.
+3. **No Schema Migrations:** Database tables are currently created using `Base.metadata.create_all()`. For production, Alembic should be integrated to handle safe, version-controlled schema migrations.
+
+## 🔮 What I'd Do in 3rd Year
+This project serves as the foundational seed for my 3rd-year portfolio. Next year, I plan to:
+- Implement multi-tenancy to isolate club data securely.
+- Replace the basic `/api/bot/ask` endpoint with a full Retrieval-Augmented Generation (RAG) pipeline using Azure AI Search and LangChain to allow students to "chat" with event rulebooks.
+- Migrate from manual Docker deployments to a fully automated GitOps CI/CD pipeline using GitHub Actions and Azure Kubernetes Service (AKS).
+*(See `docs/roadmap_3rd_year.md` for the detailed 12-month plan).*
+
+## 📜 License & Acknowledgements
+- **License:** MIT License
+- **Acknowledgements:** Built as part of the 2nd Year B.Tech CSE-AIDE Internship Program (Foundations of Cloud & DevOps). Special thanks to my segment mentor for guidance on Azure PaaS networking and API guardrails.
+```
+
