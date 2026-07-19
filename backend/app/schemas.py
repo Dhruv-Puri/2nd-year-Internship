@@ -1,5 +1,6 @@
-from pydantic import BaseModel, ConfigDict
-from datetime import datetime
+from pydantic import BaseModel, ConfigDict, field_validator
+from datetime import datetime, timezone
+
 
 # --- Auth & User ---
 class UserCreate(BaseModel):
@@ -13,10 +14,9 @@ class UserLogin(BaseModel):
     password: str
 
 class PasswordReset(BaseModel):
-    email:str
-    otp:str
-    new_password:str
-
+    email: str
+    otp: str
+    new_password: str
 
 class Token(BaseModel):
     access_token: str
@@ -27,7 +27,7 @@ class UserResponse(BaseModel):
     email: str
     name: str
     role: str
-    clubs: list[ClubResponse] = [] 
+    clubs: list["ClubResponse"] = []
     model_config = ConfigDict(from_attributes=True)
 
 # --- Club ---
@@ -36,10 +36,8 @@ class ClubResponse(BaseModel):
     name: str
     model_config = ConfigDict(from_attributes=True)
 
-
 class ClubCreate(BaseModel):
     name: str
-
 
 # --- Event ---
 class EventCreate(BaseModel):
@@ -50,6 +48,14 @@ class EventCreate(BaseModel):
     rules: str
     is_featured: bool = False
 
+    @field_validator("start_time")
+    @classmethod
+    def normalize_to_naive_utc(cls, v: datetime) -> datetime:
+        """Convert any timezone-aware datetime to naive UTC for consistent DB storage."""
+        if v.tzinfo is not None:
+            v = v.astimezone(timezone.utc).replace(tzinfo=None)
+        return v
+
 class EventResponse(BaseModel):
     id: int
     title: str
@@ -57,7 +63,7 @@ class EventResponse(BaseModel):
     description: str
     rules: str
     is_featured: bool
-    attendance_submitted: bool = False 
+    attendance_submitted: bool = False
     club: ClubResponse
     rsvp_count: int = 0
     model_config = ConfigDict(from_attributes=True)
@@ -76,7 +82,6 @@ class BotQuery(BaseModel):
     question: str
 
 # --- Notifications ---
-
 class NotificationResponse(BaseModel):
     id: int
     message: str
@@ -84,9 +89,7 @@ class NotificationResponse(BaseModel):
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
-
-#  --- Announcements ---
-
+# --- Announcements ---
 class AnnouncementCreate(BaseModel):
     title: str
     content: str
@@ -100,9 +103,7 @@ class AnnouncementResponse(BaseModel):
     club_name: str = ""
     model_config = ConfigDict(from_attributes=True)
 
-
 # --- OTP ---
 class OTPVerify(BaseModel):
     email: str
     otp: str
-

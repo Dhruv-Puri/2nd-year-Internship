@@ -5,29 +5,34 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func  
 
-from datetime import datetime, timedelta , timezone
-from database import engine, get_db, Base
-import models, schemas 
-from auth import verify_password , get_password_hash , verify_admin_club_access , create_access_token , get_current_user , require_role 
-from email_extention import send_email_stub , create_notification , cleanup_past_events
+from datetime import datetime, timedelta
 
-import io, csv , random
+from app.database import engine, get_db, Base
+from app import models,schemas
+
+from app.auth import verify_password , get_password_hash , verify_admin_club_access , create_access_token , get_current_user , require_role 
+from app.email_extension import send_email_stub , create_notification , cleanup_past_events
+
+import io, csv , random , os
 
 
 app = FastAPI(title="EventHub Secured API")
 
+
 # Enable CORS for Azure Storage Frontend
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, we will replace "*" with your Azure Storage URL
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
+
 # Create tables (In prod, use Alembic migrations instead)
 Base.metadata.create_all(bind=engine)
-
 
 
 # ==========================================
@@ -273,7 +278,7 @@ def get_clubs(db: Session = Depends(get_db)):
 @app.post("/api/admin/events")
 def create_event(event: schemas.EventCreate, admin: models.User = Depends(require_role("admin")), db: Session = Depends(get_db)):
     verify_admin_club_access(admin, event.club_id, db)
-    if event.start_time < datetime.now(timezone.utc) + timedelta(hours=3):
+    if event.start_time < datetime.now() + timedelta(hours=3):
         raise HTTPException(status_code=400, detail="Event must start at least 3 hours from now")
     
 
@@ -285,16 +290,13 @@ def create_event(event: schemas.EventCreate, admin: models.User = Depends(requir
 @app.delete("/api/admin/events/{event_id}")
 def delete_event(event_id: int, admin: models.User = Depends(require_role("admin")), db: Session = Depends(get_db)):
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event: 
+        raise HTTPException(status_code=404, detail="Event not found")
 
     verify_admin_club_access(admin, event.club_id, db)
     
-    if not event: 
-        raise HTTPException(status_code=404, detail="Event not found")
-        
-    # --- NEW GUARDRAIL ---
     if event.attendance_submitted:
         raise HTTPException(status_code=400, detail="Cannot delete event. Attendance has already been finalized.")
-    # ---------------------
         
     create_notification(db, admin.id, f"Event Deleted: You deleted the event '{event.title}'.")
     db.delete(event)
@@ -304,20 +306,20 @@ def delete_event(event_id: int, admin: models.User = Depends(require_role("admin
 @app.get("/api/admin/events/{event_id}/rsvps")
 def get_event_rsvps(event_id: int, admin: models.User = Depends(require_role("admin")), db: Session = Depends(get_db)):
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event: raise HTTPException(404, "Event not found")
 
     verify_admin_club_access(admin, event.club_id, db)
-
-    if not event: raise HTTPException(404, "Event not found")
+    
     return [{"rsvp_id": r.id, "user_name": r.user.name, "user_email": r.user.email,
              "is_present": r.attendance.is_present if r.attendance else False} for r in event.rsvps]
 
 @app.post("/api/admin/events/{event_id}/attendance")
 def mark_attendance(event_id: int, data: schemas.AttendanceMark, admin: models.User = Depends(require_role("admin")), db: Session = Depends(get_db)):
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event: raise HTTPException(404, "Event not found")
 
     verify_admin_club_access(admin, event.club_id, db)
     
-    if not event: raise HTTPException(404, "Event not found")
     if event.attendance_submitted:
         raise HTTPException(400, "Attendance has already been submitted and locked for this event")
         
@@ -336,10 +338,10 @@ def mark_attendance(event_id: int, data: schemas.AttendanceMark, admin: models.U
 @app.post("/api/admin/events/{event_id}/submit-attendance")
 def submit_attendance(event_id: int, admin: models.User = Depends(require_role("admin")), db: Session = Depends(get_db)):
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event: raise HTTPException(status_code=404, detail="Event not found")
 
     verify_admin_club_access(admin, event.club_id, db)
-
-    if not event: raise HTTPException(status_code=404, detail="Event not found")
+    
     if event.attendance_submitted:
         raise HTTPException(status_code=400, detail="Attendance already submitted for this event")
         
@@ -390,18 +392,14 @@ def get_club_stats(admin: models.User = Depends(require_role("admin")), db: Sess
 @app.put("/api/admin/events/{event_id}")
 def update_event(event_id: int, event_update: schemas.EventCreate, admin: models.User = Depends(require_role("admin")), db: Session = Depends(get_db)):
     db_event = db.query(models.Event).filter(models.Event.id == event_id).first()
-    
+    if not db_event: raise HTTPException(status_code=404, detail="Event not found")
+        
     verify_admin_club_access(admin, db_event.club_id, db)
 
-    if not db_event:
-        raise HTTPException(status_code=404, detail="Event not found")
-        
-    # --- NEW GUARDRAIL ---
     if db_event.attendance_submitted:
         raise HTTPException(status_code=400, detail="Cannot edit event. Attendance has already been finalized.")
-    # ---------------------
         
-    if event_update.start_time < datetime.now(timezone.utc) + timedelta(hours=3):
+    if event_update.start_time < datetime.now() + timedelta(hours=3):
         raise HTTPException(status_code=400, detail="Event must start at least 3 hours from now")
         
     for key, value in event_update.model_dump().items():
@@ -647,15 +645,15 @@ def send_24h_reminders(db: Session = Depends(get_db)):
 # ==========================================
 # SEED DATA
 # ==========================================
-@app.on_event("startup")
-def seed_data():
-    db = next(get_db())
-    if db.query(models.Club).count() == 0:
-        db.add_all([models.Club(name="Tech Club"), models.Club(name="Lit Club")])
-        db.commit()
-        db.add_all([
-            models.Event(title="AI/ML Hackathon", club_id=1, start_time=datetime(2026, 7, 10, 17, 0), description="Build AI.", rules="Bring laptop.", is_featured=True),
-            models.Event(title="Debate Championship", club_id=2, start_time=datetime(2026, 7, 13, 15, 0), description="Debate.", rules="Formal attire.", is_featured=False)
-        ])
-        db.commit()
-    db.close()
+# @app.on_event("startup")
+# def seed_data():
+#     db = next(get_db())
+#     if db.query(models.Club).count() == 0:
+#         db.add_all([models.Club(name="Tech Club"), models.Club(name="Lit Club")])
+#         db.commit()
+#         db.add_all([
+#             models.Event(title="AI/ML Hackathon", club_id=1, start_time=datetime(2026, 7, 10, 17, 0), description="Build AI.", rules="Bring laptop.", is_featured=True),
+#             models.Event(title="Debate Championship", club_id=2, start_time=datetime(2026, 7, 13, 15, 0), description="Debate.", rules="Formal attire.", is_featured=False)
+#         ])
+#         db.commit()
+#     db.close()
