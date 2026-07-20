@@ -1,0 +1,49 @@
+# For Local Set-up.
+# This file helps the user to set-up everything without running complex terminal commands or downloading anything extra, just docker and docker-compose and person will be able to run the whole application locally.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: eventhub-db
+    environment:
+      POSTGRES_USER: eventhub
+      POSTGRES_PASSWORD: eventhub
+      POSTGRES_DB: eventhub
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eventhub -d eventhub"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: eventhub-api
+    env_file:
+      - .env
+    environment:
+      # Override DATABASE_URL for Docker Compose internal networking
+      SECRET_KEY: FOR-LOCAL-DEV
+      ALGORITHM: HS256
+      DATABASE_URL: postgresql://eventhub:eventhub@db:5432/eventhub
+      
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    image: nginx:alpine
+    container_name: eventhub-frontend
+    ports:
+      - "8080:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+
+volumes:
+  pgdata:

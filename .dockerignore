@@ -1,0 +1,29 @@
+# initial *
+.git
+.github
+
+# Secrets and local config
+.env
+.env.*
+*.PublishSettings
+demo-testing.PublishSettings
+.gitignore
+.env
+.env.example
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+test_eventhub.db
+tests
+frontend
+docs
+README.md
+REAL_SECRETS
+
+# Whitelisting only the files / folders to include
+!backend/app
+!requirements.txt
