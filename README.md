@@ -273,7 +273,7 @@ Full interactive documentation available at: `http://localhost:8000/docs` (local
 ## 🐳 Docker & Containerisation
 
 ### Dockerfile (Backend)
-* File 1 - **[Dockerfile](.Dockerfile)** (for cloud hosting and via github actions)
+* File 1 - **[Dockerfile](Dockerfile)** (for cloud hosting and via github actions)
 
 The backend is containerised using a multi-stage-optimised single-stage Dockerfile:
 
@@ -285,7 +285,7 @@ The backend is containerised using a multi-stage-optimised single-stage Dockerfi
 - Only `backend/app` is copied (not tests, docs, or frontend) — minimal attack surface.
 
 ### Docker Compose (Local Development)
-* File 2 - **[docker-compose.yml](.docker-compose.yml)** (for the entire tech stack to help build everything locally without complex commands)
+* File 2 - **[docker-compose.yml](docker-compose.yml)** (for the entire tech stack to help build everything locally without complex commands)
 
 
 **How it works:**
