@@ -1,5 +1,5 @@
 
-const API = "http://127.0.0.1:8000";
+const API = (window.EVENTHUB_CONFIG && window.EVENTHUB_CONFIG.API_URL) || "http://127.0.0.1:8000";
 let currentUser = null;
 let state = { events: [], rsvps: [], clubs: [], notifications: [], announcements: [], adminStats: null, rsvpChart: null, eventsChart: null };
 

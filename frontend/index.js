@@ -1,7 +1,8 @@
+const API_URL = (window.EVENTHUB_CONFIG && window.EVENTHUB_CONFIG.API_URL) || "http://127.0.0.1:8000";
+
 /* ---------------------------------------------------------
     FRONTEND UI LOGIC 
 --------------------------------------------------------- */
-const API_URL = "http://127.0.0.1:8000";
 
 const themeSelectorBtn = document.getElementById('themeSelectorBtn');
 const themeOptions = document.getElementById('themeOptions');
