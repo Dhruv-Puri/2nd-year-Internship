@@ -10,9 +10,9 @@
 
 | Asset | Link |
 | :--- | :--- |
-| **Live Frontend URL** | [https://<your-storage-account>.z13.web.core.windows.net](#) |
-| **Live Backend API** | [https://<your-webapp-name>.azurewebsites.net/docs](#) |
-| **3-Minute Video Walkthrough** | [Google-Drive Link Here](#) |
+| **Live Frontend URL** | [Frontend URL](https://frontendstorage234235t2.z12.web.core.windows.net/) |
+| **Live Backend API** | [Backend URL](#) |
+| **3-Minute Video Walkthrough** | [Google-Drive URL](#) |
 
 > ⚠️ **Note:** The backend runs on Azure App Service (Free Tier) which cold-starts after ~5 minutes of inactivity. The first API call may take 30-60 seconds. Subsequent requests are instant.
 
