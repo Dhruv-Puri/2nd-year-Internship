@@ -1,9 +1,9 @@
 # 🎟️ EventHub: Internal Tool Backbone + AI Chat - Extension
 > *A centralized, cloud-native platform for university student clubs to organize events, manage RSVPs, and query event guidelines using an integrated AI assistant.*
 
-**Author:** Dhruv  
-**Segment:** Segment 4 — Foundations of Cloud & DevOps  
-**Problem Statement Code:** J2 (Internal Tool Backbone)  
+- **Author:** Dhruv  
+- **Segment:** Segment 4 — Foundations of Cloud & DevOps  
+- **Problem Statement Code:** J2 (Internal Tool Backbone)  
 ---
 
 # 📹 Demo & Live Deployment
