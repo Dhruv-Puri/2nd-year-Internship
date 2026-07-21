@@ -31,7 +31,9 @@
 ---
 
 # 🏗️ Architecture Diagram
-
+| Description | Link |
+| :--- | :--- |
+| For the Full Cloud Architecture and Automated WorkFlow , refer to this document - | [Architecture Design Document](docs/design_doc.md) |
 ```mermaid
 graph TD
     %% Define Styles
@@ -419,6 +421,10 @@ erDiagram
         int id PK
         string name UK
     }
+    USER_CLUBS {
+        int user_id FK "Composite PK, references users"
+        int club_id FK "Composite PK, references clubs"
+    }
     EVENT {
         int id PK
         string title
@@ -438,7 +444,7 @@ erDiagram
     }
     ATTENDANCE {
         int id PK
-        int rsvp_id FK "unique"
+        int rsvp_id FK "Unique, references rsvps"
         boolean is_present
         datetime checked_in_at
     }
@@ -448,8 +454,8 @@ erDiagram
         string code
         datetime expires_at
         string name "pending registration data"
-        string role
-        string hashed_password
+        string role "pending registration data"
+        string hashed_password "pending registration data"
     }
     NOTIFICATION {
         int id PK
@@ -469,11 +475,12 @@ erDiagram
     EMAIL_QUOTA {
         int id PK
         string date UK "YYYY-MM-DD"
-        int count
-        boolean is_valid
+        int count "hard limit 10"
+        boolean is_valid "global toggle"
     }
 
-    USER ||--o{ CLUB : "joins/manages (M2M)"
+    USER ||--o{ USER_CLUBS : "joins"
+    CLUB ||--o{ USER_CLUBS : "has members"
     CLUB ||--o{ EVENT : "hosts"
     USER ||--o{ RSVP : "submits"
     EVENT ||--o{ RSVP : "receives"
