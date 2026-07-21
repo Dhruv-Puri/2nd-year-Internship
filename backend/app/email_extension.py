@@ -51,7 +51,7 @@ def send_email_stub(reciever_email: str, subject: str, body: str, db: Session):
         quota.count += 1
         db.commit()
     except Exception as ex:
-        print(f"\n\n{"*"*50}\n\nError sending email: {ex}\n\n{"*"*50}\n\n")
+        print(f"\n\n{'*'*50}\n\nError sending email: {ex}\n\n{'*'*50}\n\n")
         
 
     print(f"\n{'='*50}\n📧 EMAIL STUB TRIGGERED\nTo: {reciever_email}\nSubject: {subject}\nBody: {body}\n{'='*50}\n")
