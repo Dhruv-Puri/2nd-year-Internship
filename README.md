@@ -404,6 +404,85 @@ All data persists in PostgreSQL (local) or Neon PostgreSQL (production). No exte
 
 ---
 
+## Data Model & Entity Relationships
+
+```mermaid
+erDiagram
+    USER {
+        int id PK
+        string email UK
+        string name
+        string role "student | admin | coordinator"
+        string hashed_password
+    }
+    CLUB {
+        int id PK
+        string name UK
+    }
+    EVENT {
+        int id PK
+        string title
+        int club_id FK
+        datetime start_time
+        string description
+        string rules
+        boolean is_featured
+        boolean attendance_submitted
+        boolean reminder_sent
+    }
+    RSVP {
+        int id PK
+        int user_id FK
+        int event_id FK
+        datetime created_at
+    }
+    ATTENDANCE {
+        int id PK
+        int rsvp_id FK "unique"
+        boolean is_present
+        datetime checked_in_at
+    }
+    OTP {
+        int id PK
+        string email
+        string code
+        datetime expires_at
+        string name "pending registration data"
+        string role
+        string hashed_password
+    }
+    NOTIFICATION {
+        int id PK
+        int user_id FK
+        string message
+        boolean is_read
+        datetime created_at
+    }
+    ANNOUNCEMENT {
+        int id PK
+        int club_id FK
+        int author_id FK
+        string title
+        string content
+        datetime created_at
+    }
+    EMAIL_QUOTA {
+        int id PK
+        string date UK "YYYY-MM-DD"
+        int count
+        boolean is_valid
+    }
+
+    USER ||--o{ CLUB : "joins/manages (M2M)"
+    CLUB ||--o{ EVENT : "hosts"
+    USER ||--o{ RSVP : "submits"
+    EVENT ||--o{ RSVP : "receives"
+    RSVP ||--o| ATTENDANCE : "has"
+    USER ||--o{ NOTIFICATION : "receives"
+    CLUB ||--o{ ANNOUNCEMENT : "posts"
+```
+---
+
 # 📂 Architecture Decision Records (ADRs)
 
 All major architectural choices are documented with context, decisions, consequences, and alternatives considered:
