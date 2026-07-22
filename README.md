@@ -34,37 +34,34 @@
 | Description | Link |
 | :--- | :--- |
 | For the Full Cloud Architecture and Automated WorkFlow , refer to this document - | [Architecture Design Document](docs/design_doc.md) |
+| Full Architecture Diagram (mermaid) | [Architecture Diagram](docs/architecture_diagram.md)|
 ```mermaid
 graph TD
-    %% Define Styles
-    classDef azure fill:#0072C6,stroke:#fff,stroke-width:2px,color:#fff;
-    classDef db fill:#00bcba,stroke:#fff,stroke-width:2px,color:#fff;
-    classDef local fill:#24292e,stroke:#fff,stroke-width:2px,color:#fff;
-    classDef acs fill:#FFD21E,stroke:#000,stroke-width:2px,color:#000;
+    classDef azure fill:#0072C6,stroke:#fff,stroke-width:2px,color:#fff
+    classDef db fill:#00bcba,stroke:#fff,stroke-width:2px,color:#fff
+    classDef local fill:#374151,stroke:#fff,stroke-width:2px,color:#fff
+    classDef acs fill:#FFD21E,stroke:#000,stroke-width:2px,color:#000
+    classDef cicd fill:#24292e,stroke:#fff,stroke-width:2px,color:#fff
 
-    User((User Browser))
+    User(("👤 User"))
+    SWA["☁️ Azure Storage<br/>Static Frontend"]:::azure
+    API["☁️ Azure App Service<br/>FastAPI Container"]:::azure
+    NEON[("☁️ Neon PostgreSQL<br/>Free Tier")]:::db
+    PG[("🐳 PostgreSQL 16<br/>Local Docker")]:::local
+    ACS["📧 Azure ACS<br/>Email Pipeline"]:::acs
+    GHCR[("📦 GHCR")]:::cicd
+    GHA["🔄 GitHub Actions<br/>Test → Build → Deploy"]:::cicd
 
-    subgraph "Frontend Tier (Static)"
-        SWA["Azure Storage Account<br/>Static Website Hosting<br/>HTML / CSS / Vanilla JS"]:::azure
-    end
-
-    subgraph "Backend Tier (Containerised)"
-        API["Azure App Service<br/>FastAPI Docker Container<br/>Port 8000"]:::azure
-    end
-
-    subgraph "Data & Services Tier"
-        DB_LOCAL[("PostgreSQL 16<br/>(Local via Docker Compose)")]:::local
-        DB_CLOUD[("Neon PostgreSQL<br/>(Serverless Cloud - Free Tier)")]:::db
-        ACS["Azure Communication<br/>Services (Email)"]:::acs
-    end
-
-    User -->|"1. HTTP GET (Static Assets)"| SWA
-    User -->|"2. REST API + Bearer JWT"| API
-    API -->|"3a. Read/Write (Local Dev)"| DB_LOCAL
-    API -->|"3b. Read/Write (Production)"| DB_CLOUD
-    API -->|"4. OTP / RSVP / Reminder Emails"| ACS
+    User -->|"Static Assets"| SWA
+    User -->|"REST + JWT"| API
+    SWA -.->|"config.js URL"| API
+    API -->|"Production"| NEON
+    API -->|"Local Dev"| PG
+    API -->|"OTP · RSVP · Reminders"| ACS
+    GHA -->|"Push Image"| GHCR
+    GHCR -->|"Pull & Restart"| API
+    GHA -->|"Upload Frontend"| SWA
 ```
-
 ## Architecture Explanation
 
 EventHub follows a **fully decoupled, three-tier architecture**:
