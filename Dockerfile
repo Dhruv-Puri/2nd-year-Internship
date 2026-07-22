@@ -1,6 +1,6 @@
 # For Workflows and Deployment.
 # The instructions for building the image that would run as a container.
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
