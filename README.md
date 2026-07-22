@@ -114,13 +114,25 @@ EventHub follows a **fully decoupled, three-tier architecture**:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/<your-username>/2nd-year-Internship.git
+# via zip download - download the file from Code (top right green button) ->  click on download zip -> extract the zip and the folder from it wherever you want and open terminal in that folder
+# via terminal -
+git clone https://github.com/Dhruv-Puri/2nd-year-Internship.git
 cd 2nd-year-Internship
 
-# 2. Start the entire stack (Database + Backend + Frontend)
+
+# 2. Setting up .env (for this you just need to copy file and nothing else)
+cp .env.example .env
+
+# 3. Start the entire stack (Database + Backend + Frontend)
+# For windows -
 docker-compose up --build
 
-# 3. Access the application
+# For Linux - (with newer docker compose)
+docker compose build
+docker compose up
+
+
+# 4. Access the application
 #    Frontend:  http://localhost:8080
 #    Backend API: http://localhost:8000/docs
 #    PostgreSQL: localhost:5432 (user: eventhub, pass: eventhub, db: eventhub)
@@ -137,7 +149,7 @@ docker-compose up --build
 
 ```bash
 # 1. Clone and enter the project
-git clone https://github.com/<your-username>/2nd-year-Internship.git
+git clone https://github.com/Dhruv-Puri/2nd-year-Internship.git
 cd 2nd-year-Internship
 
 # 2. Create and activate a virtual environment
