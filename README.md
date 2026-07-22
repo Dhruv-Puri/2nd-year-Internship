@@ -172,7 +172,8 @@ docker run -d --name eventhub-db \
   postgres:16-alpine
 
 # 6. Start the backend
-uvicorn backend.app.main:app --reload --port 8000
+cd backend
+uvicorn app.main:app --reload --port 8000
 
 # 7. Serve the frontend (any static file server)
 cd frontend
