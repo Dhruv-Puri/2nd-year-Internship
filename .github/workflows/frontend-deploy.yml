@@ -1,0 +1,47 @@
+name: Frontend Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: frontend-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy Frontend to Azure Storage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate production config.js
+        run: |
+          echo "window.EVENTHUB_CONFIG = { API_URL: '${{ secrets.PROD_API_URL }}' };" > frontend/config.js
+
+      - name: Enable static website if not already enabled
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az storage blob service-properties update \
+              --connection-string "${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
+              --static-website \
+              --index-document index.html \
+              --404-document index.html || true
+
+      - name: Upload frontend to Azure Storage static website
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az storage blob upload-batch \
+              --connection-string "${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
+              --destination '$web' \
+              --source frontend \
+              --overwrite true
