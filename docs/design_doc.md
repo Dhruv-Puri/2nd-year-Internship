@@ -94,7 +94,7 @@ graph TD
 | **Container Registry** | GitHub Container Registry (GHCR) | Stores production Docker images. Azure App Service pulls images by SHA tag. Supports both public and private registries via `GHCR_PRIVATE` variable. |
 | **Cloud Hosting** | Azure PaaS (App Service + Storage) | Platform-as-a-Service deployment that cleanly decouples frontend (Storage Static Website) and backend (App Service for Containers) infrastructure. |
 | **ORM** | SQLAlchemy 2.0 | Declarative models, relationship management, session handling. `ConfigDict(from_attributes=True)` bridges ORM ↔ Pydantic. |
-| **Testing** | Pytest + FastAPI TestClient | 6 test files, 20+ test cases. Isolated SQLite test database. Email calls monkeypatched. Runs in < 5 seconds. |
+| **Testing** | Pytest + FastAPI TestClient | 6 test files, 18 test cases. Isolated SQLite test database. Email calls monkeypatched. Runs in < 5 seconds. |
 | **CI/CD** | GitHub Actions (2 workflows) | `backend-ci-cd.yml`: PyTest → Docker build → smoke test → GHCR push → Azure deploy. `frontend-deploy.yml`: `config.js` injection → Azure Storage blob upload. |
 
 ---
@@ -344,11 +344,10 @@ graph LR
 
     Push["Push to main<br/>(backend/**, requirements.txt,<br/>Dockerfile, workflow)"]:::git
     Push --> Test["Job 1: Run PyTest<br/>(SQLite isolated DB,<br/>emails monkeypatched)"]:::test
-    Test -->|"All 20+ tests pass"| Build["Job 2: Build Docker Image<br/>(python:3.14-slim)"]:::build
+    Test -->|"All 18 tests pass"| Build["Job 2: Build Docker Image<br/>(python:3.14-slim)"]:::build
     Build --> Smoke["Smoke Test:<br/>docker run + curl /docs<br/>(retry 5x, 3s delay)"]:::test
     Smoke -->|"Container healthy"| PushGHCR["Push to GHCR<br/>(SHA tag + latest)"]:::build
-    PushGHCR --> Settings["Set Azure App Settings<br/>(WEBSITES_PORT, GHCR creds,<br/>PROD_* env vars from Secrets)"]:::deploy
-    Settings --> Deploy["Deploy to Azure App Service<br/>(azure/webapps-deploy@v3,<br/>image:SHA)"]:::deploy
+    PushGHCR --> Deploy["Job 3: Deploy to Azure App Service<br/>(azure/webapps-deploy@v3,<br/>publish-profile, image:SHA)"]:::deploy
 ```
 
 **Backend Pipeline Stages:**
@@ -356,12 +355,11 @@ graph LR
 | Stage | What Happens | Key Detail |
 | :--- | :--- | :--- |
 | **1. Trigger** | Activated on pushes to `main` that touch `backend/**`, `requirements.txt`, `Dockerfile`, or the workflow file. Also supports `workflow_dispatch` for manual runs. | `concurrency: backend-production` prevents parallel deployments. |
-| **2. Test** | Runs `pytest -v` against an isolated SQLite database (`ci_eventhub.db`). All email calls are monkeypatched to no-ops. | 20+ tests across 6 files. Runs in < 5 seconds. |
+| **2. Test** | Runs `pytest -v` against an isolated SQLite database (`ci_eventhub.db`). All email calls are monkeypatched to no-ops. | 18 tests across 6 files. Runs in < 5 seconds. |
 | **3. Build** | Builds the Docker image from the root `Dockerfile`. Tags with `github.sha`. | `python:3.14-slim` base. Only `backend/app` copied (not tests, docs, frontend). |
-| **4. Smoke Test** | Runs the container with `DATABASE_URL=sqlite:///./smoke.db`, waits 10s, then `curl --fail --retry 5 http://localhost:8000/docs`. | Validates the image actually boots and serves the API before pushing. |
-| **5. Push** | Pushes to GHCR with both SHA tag and `latest` tag. | Lowercase owner via `tr '[:upper:]' '[:lower:]'`. |
-| **6. Configure** | Sets Azure App Service settings: `WEBSITES_PORT=8000`, `DOCKER_REGISTRY_SERVER_URL=https://ghcr.io`, and all `PROD_*` environment variables from GitHub Secrets. | Conditional: `GHCR_PRIVATE` variable controls whether pull credentials are set. `SET_PROD_ENV_FROM_SECRETS` controls whether prod env vars are injected. |
-| **7. Deploy** | `azure/webapps-deploy@v3` triggers Azure App Service to pull the new image and restart. | Image referenced by SHA tag for immutable deployments. |
+| **4. Smoke Test** | Runs the container with `DATABASE_URL=sqlite:///./smoke.db`, waits 10s, then `curl --fail --retry 5 --retry-delay 3 --retry-connrefused http://localhost:8000/docs`. | Validates the image actually boots and serves the API before pushing. |
+| **5. Push** | Pushes to GHCR with both SHA tag and `latest` tag. | Lowercase owner via `tr '[:upper:]' '[:lower:]'`. Uses `GITHUB_TOKEN` for registry auth. |
+| **6. Deploy** | `azure/webapps-deploy@v3` triggers Azure App Service to pull the new image and restart using the publish profile. | Image referenced by SHA tag for immutable deployments. Azure App Settings (env vars) are **pre-configured manually** in the Azure Portal — the pipeline does **not** inject them. |
 
 ### Frontend Pipeline (`frontend-deploy.yml`)
 
@@ -387,26 +385,28 @@ graph LR
 | **4. Upload** | `az storage blob upload-batch --destination '$web' --source frontend --overwrite true`. | Uploads all files (HTML, CSS, JS, config.js) to the `$web` container. Overwrites previous version. |
 
 ### Secrets & Variables Required
-#### For Github
-| Type | Name | Purpose |
-| :--- | :--- | :--- |
-| **Github-Secret** | `PROD_API_URL` | Azure Web App URL (e.g., `https://eventhub-api.azurewebsites.net`). Injected into `config.js`. |
-| **Github-Secret** | `AZURE_WEBAPP_NAME` | Azure App Service resource name. |
-| **Github-Secret** | `AZURE_WEBAPP_PUBLISH_PROFILE` | XML publish profile from Azure Portal. |
-| **Github-Secret** | `AZURE_STORAGE_CONNECTION_STRING` | Azure Storage Account connection string. |
+#### GitHub Repository Secrets (used by CI/CD workflows)
 
-#### For Azure Web App
-| Type | Name | Purpose |
-| :--- | :--- | :--- |
-| **Azure-Environment-Secret** | `SECRET_KEY` | JWT signing secret for production. |
-| **Azure-Environment-Secret** | `ALGORITHM` | JWT algorithm (e.g., `HS256`). |
-| **Azure-Environment-Secret** | `DATABASE_URL` | Neon PostgreSQL connection string. |
-| **Azure-Environment-Secret** | `ACS_CONNECTION_STRING` | Azure Communication Services connection string. |
-| **Azure-Environment-Secret** | `SENDER_EMAIL` | Verified ACS sender address. |
-| **Azure-Environment-Secret** | `ALLOWED_ORIGINS` | Azure Storage Static Website URL (CORS whitelist). |
-| **Azure-Environment-Secret** | `WEBPORT` | 8000 (to tell on which port the Azure needs to run expose the application and listen for traffic) |
+| Type | Name | Used In | Purpose |
+| :--- | :--- | :--- | :--- |
+| **Secret** | `PROD_API_URL` | `frontend-deploy.yml` | Azure Web App URL injected into `config.js` at deploy time. |
+| **Secret** | `AZURE_WEBAPP_NAME` | `backend-ci-cd.yml` | Azure App Service resource name for `azure/webapps-deploy@v3`. |
+| **Secret** | `AZURE_WEBAPP_PUBLISH_PROFILE` | `backend-ci-cd.yml` | XML publish profile from Azure Portal for deployment auth. |
+| **Secret** | `AZURE_STORAGE_CONNECTION_STRING` | `frontend-deploy.yml` | Azure Storage Account connection string for blob upload. |
 
+#### Azure App Service — Application Settings (manually configured once in Azure Portal)
 
+> ⚠️ These are **NOT** managed by the CI/CD pipeline. They were set once via **Azure Portal → App Service → Configuration → Application settings** and persist across deployments. The pipeline only pushes a new container image; Azure App Service reads these env vars at container startup.
+
+| Setting Name | Purpose |
+| :--- | :--- |
+| `SECRET_KEY` | JWT signing secret for production. |
+| `ALGORITHM` | JWT algorithm (`HS256`). |
+| `DATABASE_URL` | Neon PostgreSQL connection string (`postgresql://...?sslmode=require`). |
+| `ACS_CONNECTION_STRING` | Azure Communication Services connection string. |
+| `SENDER_EMAIL` | Verified ACS sender address (`DoNotReply@...azurecomm.net`). |
+| `ALLOWED_ORIGINS` | Azure Storage Static Website URL (CORS whitelist). |
+| `WEBSITES_PORT` | `8000` — tells Azure App Service which port the container listens on. |
 
 ---
 
@@ -515,7 +515,7 @@ Full interactive documentation available at `/docs` (Swagger UI) and `/redoc` (R
 | DELETE | `/api/clubs/{id}/revoke-admin` | Revoke admin access to a club (M2M remove). | Coordinator |
 | POST | `/api/events/{id}/feature` | Toggle `is_featured` status on an event. | Coordinator |
 
-### System, Notifications & Bot (5 endpoints)
+### System, Notifications & Bot (6 endpoints)
 
 | Method | Endpoint | Description | Guard |
 | :--- | :--- | :--- | :--- |
