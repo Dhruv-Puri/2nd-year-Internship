@@ -508,6 +508,7 @@ All major architectural choices are documented with context, decisions, conseque
 - **[ADR-001: Decoupled Vanilla JS Frontend with Runtime Config Injection](./docs/adr/ADR-001.md)**
 - **[ADR-002: Neon PostgreSQL (Serverless) for Cloud + Local PostgreSQL via Docker](./docs/adr/ADR-002.md)**
 - **[ADR-003: Azure Communication Services (ACS) for Transactional Emails](./docs/adr/ADR-003.md)**
+- **[ADR-004: GitHub Container Registry (GHCR) for Backend Deployment + Github CI/CD Actions for Automation](./docs/adr/ADR-004.md)**
 
 ---
 
