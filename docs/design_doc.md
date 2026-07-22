@@ -83,14 +83,14 @@ graph TD
 
 | Component | Technology | Rationale |
 | :--- | :--- | :--- |
-| **Backend API** | FastAPI (Python 3.11+) | High-throughput asynchronous framework with native Pydantic validation, dependency injection, and auto-generated OpenAPI documentation at `/docs`. |
+| **Backend API** | FastAPI (Python 3.14) | High-throughput asynchronous framework with native Pydantic validation, dependency injection, and auto-generated OpenAPI documentation at `/docs`. |
 | **Database (Local)** | PostgreSQL 16 (Docker Alpine) | Enterprise-grade relational engine running inside Docker Compose. Zero-config local setup with health checks and persistent volumes. |
 | **Database (Cloud)** | Neon PostgreSQL (Serverless Free Tier) | 512MB storage, auto-pause/resume, standard `postgresql://` connection string. Chosen over Azure Database for PostgreSQL to strictly adhere to the 100% free-tier constraint. `pool_pre_ping=True` handles cold-start latency. |
 | **Frontend** | HTML / CSS / Vanilla JS | Zero-dependency, lightweight static assets (~50KB total). Runtime `config.js` injection pattern for environment portability. Five themes via CSS variables. |
 | **Authentication** | JWT (HS256) + Bcrypt + OTP | Secure, stateless token-based security (60-min expiry) paired with time-bound OTP verification (15-min expiry) to prevent database bloat from unverified accounts. |
 | **Notification Engine** | Azure Communication Services (ACS) | Native Azure integration for transactional emails. No domain-verification friction (uses `azurecomm.net` sender). Protected by `EmailQuota` guardrail (10/day) and global toggle. |
 | **AI Engine (Planned)** | Google Gemini API (Free Tier) | Context-injected LLM for EventBot. Replaces earlier RAG/HuggingFace Spaces plan. Injects live event data (title, rules, description) into prompts for accurate answers. |
-| **Containerisation** | Docker + Docker Compose | Single `docker-compose up --build` command spins up the full stack (PostgreSQL + FastAPI + Nginx). Dockerfile uses `python:3.11-slim` with health checks. |
+| **Containerisation** | Docker + Docker Compose | Single `docker-compose up --build` command spins up the full stack (PostgreSQL + FastAPI + Nginx). Dockerfile uses `python:3.14-slim` with health checks. |
 | **Container Registry** | GitHub Container Registry (GHCR) | Stores production Docker images. Azure App Service pulls images by SHA tag. Supports both public and private registries via `GHCR_PRIVATE` variable. |
 | **Cloud Hosting** | Azure PaaS (App Service + Storage) | Platform-as-a-Service deployment that cleanly decouples frontend (Storage Static Website) and backend (App Service for Containers) infrastructure. |
 | **ORM** | SQLAlchemy 2.0 | Declarative models, relationship management, session handling. `ConfigDict(from_attributes=True)` bridges ORM ↔ Pydantic. |
@@ -344,7 +344,7 @@ graph LR
 
     Push["Push to main<br/>(backend/**, requirements.txt,<br/>Dockerfile, workflow)"]:::git
     Push --> Test["Job 1: Run PyTest<br/>(SQLite isolated DB,<br/>emails monkeypatched)"]:::test
-    Test -->|"All 20+ tests pass"| Build["Job 2: Build Docker Image<br/>(python:3.11-slim)"]:::build
+    Test -->|"All 20+ tests pass"| Build["Job 2: Build Docker Image<br/>(python:3.14-slim)"]:::build
     Build --> Smoke["Smoke Test:<br/>docker run + curl /docs<br/>(retry 5x, 3s delay)"]:::test
     Smoke -->|"Container healthy"| PushGHCR["Push to GHCR<br/>(SHA tag + latest)"]:::build
     PushGHCR --> Settings["Set Azure App Settings<br/>(WEBSITES_PORT, GHCR creds,<br/>PROD_* env vars from Secrets)"]:::deploy
@@ -357,7 +357,7 @@ graph LR
 | :--- | :--- | :--- |
 | **1. Trigger** | Activated on pushes to `main` that touch `backend/**`, `requirements.txt`, `Dockerfile`, or the workflow file. Also supports `workflow_dispatch` for manual runs. | `concurrency: backend-production` prevents parallel deployments. |
 | **2. Test** | Runs `pytest -v` against an isolated SQLite database (`ci_eventhub.db`). All email calls are monkeypatched to no-ops. | 20+ tests across 6 files. Runs in < 5 seconds. |
-| **3. Build** | Builds the Docker image from the root `Dockerfile`. Tags with `github.sha`. | `python:3.11-slim` base. Only `backend/app` copied (not tests, docs, frontend). |
+| **3. Build** | Builds the Docker image from the root `Dockerfile`. Tags with `github.sha`. | `python:3.14-slim` base. Only `backend/app` copied (not tests, docs, frontend). |
 | **4. Smoke Test** | Runs the container with `DATABASE_URL=sqlite:///./smoke.db`, waits 10s, then `curl --fail --retry 5 http://localhost:8000/docs`. | Validates the image actually boots and serves the API before pushing. |
 | **5. Push** | Pushes to GHCR with both SHA tag and `latest` tag. | Lowercase owner via `tr '[:upper:]' '[:lower:]'`. |
 | **6. Configure** | Sets Azure App Service settings: `WEBSITES_PORT=8000`, `DOCKER_REGISTRY_SERVER_URL=https://ghcr.io`, and all `PROD_*` environment variables from GitHub Secrets. | Conditional: `GHCR_PRIVATE` variable controls whether pull credentials are set. `SET_PROD_ENV_FROM_SECRETS` controls whether prod env vars are injected. |
@@ -448,7 +448,7 @@ graph LR
 ├── .dockerignore                      # Excludes .env, tests, frontend, docs, __pycache__ from Docker image
 ├── .env.example                       # Template with empty values (intentional — Docker Compose overrides)
 ├── docker-compose.yml                 # Full local stack: PostgreSQL 16 + FastAPI + Nginx (ports 5432, 8000, 8080)
-├── Dockerfile                         # python:3.11-slim, curl for healthchecks, EXPOSE 8000, HEALTHCHECK, uvicorn CMD
+├── Dockerfile                         # python:3.14-slim, curl for healthchecks, EXPOSE 8000, HEALTHCHECK, uvicorn CMD
 ├── pytest.ini                         # testpaths=backend/tests, pythonpath=backend, filterwarnings
 ├── queries.sql                        # Reference SQL queries for all 10 tables
 ├── requirements.txt                   # 12 Python dependencies (fastapi, sqlalchemy, azure-communication-email, pytest, etc.)
