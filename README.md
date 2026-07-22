@@ -85,7 +85,7 @@ EventHub follows a **fully decoupled, three-tier architecture**:
 
 | Component | Technology | Why (Rationale) |
 | :--- | :--- | :--- |
-| **Backend Framework** | FastAPI (Python 3.11) | High-throughput async framework with native Pydantic validation, auto-generated OpenAPI docs, and dependency injection for clean testable code. |
+| **Backend Framework** | FastAPI (Python 3.14) | High-throughput async framework with native Pydantic validation, auto-generated OpenAPI docs, and dependency injection for clean testable code. |
 | **Database (Local)** | PostgreSQL 16 (Docker) | Enterprise-grade relational engine for enforcing strict constraints across Users, Clubs, Events, RSVPs. Runs in Docker Compose for zero-config local setup. |
 | **Database (Cloud)** | Neon PostgreSQL (Free Tier) | Serverless Postgres with auto-pause/resume. Chosen over Azure Database for PostgreSQL to strictly adhere to the 100% free-tier constraint while maintaining production-grade SQL. |
 | **Frontend** | HTML / CSS / Vanilla JS | Zero-dependency, lightweight static assets. No build step, no node_modules, no framework lock-in. Optimised for instant edge delivery via Azure Storage. |
@@ -153,6 +153,7 @@ git clone https://github.com/Dhruv-Puri/2nd-year-Internship.git
 cd 2nd-year-Internship
 
 # 2. Create and activate a virtual environment
+# (Make sure you have python 3.14 specifically or else you need to change versions of requirements.txt)
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
@@ -294,7 +295,7 @@ The backend is containerised using a multi-stage-optimised single-stage Dockerfi
 
 
 **Key Design Decisions:**
-- `python:3.11-slim` base keeps the image under 200MB.
+- `python:3.14-slim` base keeps the image under 200MB.
 - `PYTHONUNBUFFERED=1` ensures logs stream in real-time to Azure's log viewer.
 - `HEALTHCHECK` enables Azure App Service to detect container readiness.
 - Only `backend/app` is copied (not tests, docs, or frontend) — minimal attack surface.
