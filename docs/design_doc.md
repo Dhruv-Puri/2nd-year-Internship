@@ -387,21 +387,26 @@ graph LR
 | **4. Upload** | `az storage blob upload-batch --destination '$web' --source frontend --overwrite true`. | Uploads all files (HTML, CSS, JS, config.js) to the `$web` container. Overwrites previous version. |
 
 ### Secrets & Variables Required
-
+#### For Github
 | Type | Name | Purpose |
 | :--- | :--- | :--- |
-| **Secret** | `PROD_API_URL` | Azure Web App URL (e.g., `https://eventhub-api.azurewebsites.net`). Injected into `config.js`. |
-| **Secret** | `AZURE_WEBAPP_NAME` | Azure App Service resource name. |
-| **Secret** | `AZURE_WEBAPP_PUBLISH_PROFILE` | XML publish profile from Azure Portal. |
-| **Secret** | `AZURE_STORAGE_CONNECTION_STRING` | Azure Storage Account connection string. |
-| **Secret** | `PROD_SECRET_KEY` | JWT signing secret for production. |
-| **Secret** | `PROD_ALGORITHM` | JWT algorithm (e.g., `HS256`). |
-| **Secret** | `PROD_DATABASE_URL` | Neon PostgreSQL connection string. |
-| **Secret** | `PROD_ACS_CONNECTION_STRING` | Azure Communication Services connection string. |
-| **Secret** | `PROD_SENDER_EMAIL` | Verified ACS sender address. |
-| **Secret** | `PROD_ALLOWED_ORIGINS` | Azure Storage Static Website URL (CORS whitelist). |
-| **Variable** | `GHCR_PRIVATE` | `false` for public repos, `true` for private (requires `GHCR_USERNAME` + `GHCR_PAT`). |
-| **Variable** | `SET_PROD_ENV_FROM_SECRETS` | `true` to inject prod env vars via GitHub Actions. `false` to set them manually in Azure Portal. |
+| **Github-Secret** | `PROD_API_URL` | Azure Web App URL (e.g., `https://eventhub-api.azurewebsites.net`). Injected into `config.js`. |
+| **Github-Secret** | `AZURE_WEBAPP_NAME` | Azure App Service resource name. |
+| **Github-Secret** | `AZURE_WEBAPP_PUBLISH_PROFILE` | XML publish profile from Azure Portal. |
+| **Github-Secret** | `AZURE_STORAGE_CONNECTION_STRING` | Azure Storage Account connection string. |
+
+#### For Azure Web App
+| Type | Name | Purpose |
+| :--- | :--- | :--- |
+| **Azure-Environment-Secret** | `SECRET_KEY` | JWT signing secret for production. |
+| **Azure-Environment-Secret** | `ALGORITHM` | JWT algorithm (e.g., `HS256`). |
+| **Azure-Environment-Secret** | `DATABASE_URL` | Neon PostgreSQL connection string. |
+| **Azure-Environment-Secret** | `ACS_CONNECTION_STRING` | Azure Communication Services connection string. |
+| **Azure-Environment-Secret** | `SENDER_EMAIL` | Verified ACS sender address. |
+| **Azure-Environment-Secret** | `ALLOWED_ORIGINS` | Azure Storage Static Website URL (CORS whitelist). |
+| **Azure-Environment-Secret** | `WEBPORT` | 8000 (to tell on which port the Azure needs to run expose the application and listen for traffic) |
+
+
 
 ---
 
