@@ -58,3 +58,28 @@ async function cancelRSVP(eventId) {
     await Promise.all([fetchEvents(), fetchMyRsvps(), fetchNotifications()]);
     renderDashboard();
 }
+```
+```javascript
+// 3. Disable Edit/Delete buttons when attendance_submitted is true (admin view)
+const isLocked = e.attendance_submitted;
+`<button class="btn btn-sm btn-danger" onclick="deleteEvent(${e.id})" 
+    ${isLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>
+    <i class="fas ${isLocked ? 'fa-lock' : 'fa-trash'}"></i> ${isLocked ? 'Locked' : 'Delete'}
+</button>`
+```
+
+## Lessons Learned
+
+1. **The frontend is a cache of backend state.** Any time the backend state changes (admin locks attendance, coordinator deletes a club), the frontend must re-fetch. Optimistic UI updates are dangerous without a reconciliation step. The "always re-fetch after mutation" pattern (`await Promise.all([fetchEvents(), fetchMyRsvps()]); renderDashboard();`) is now applied to every mutating action in `dashboard.js`.
+
+2. **Error messages are a UX feature.** "Network Error" for a 400 response is actively misleading. Every `catch` block now reads `err.detail` and displays the backend's actual message. This took 10 minutes to implement and would have saved hours of user confusion.
+
+3. **Test the multi-user scenario.** I tested the attendance lock in isolation (admin locks → verify backend rejects). I didn't test the *concurrent* scenario (student has dashboard open → admin locks → student clicks cancel). Multi-user state desync is a category of bug that only appears when you test with two browser windows.
+
+4. **Backend guardrails are necessary but not sufficient.** The backend correctly rejected the invalid request. But the frontend allowed the user to *attempt* it, creating a confusing experience. Defence in depth means the UI should also prevent the action (disabled button + lock icon), not just the API.
+
+## Prevention
+
+- Every mutating frontend action now follows the pattern: `try → show success/error → ALWAYS re-fetch → re-render`.
+- Admin-facing buttons (Edit, Delete, Mark Attendance) are disabled with a lock icon when `attendance_submitted === true`.
+- The `cancelRSVP` function refreshes any open overlay (My RSVPs, Event Details) seamlessly without a full page reload.
