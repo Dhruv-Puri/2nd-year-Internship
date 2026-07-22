@@ -11,7 +11,7 @@
 | Asset | Link |
 | :--- | :--- |
 | **Live Frontend URL** | [Frontend URL](https://frontendstorage234235t2.z12.web.core.windows.net/) |
-| **Live Backend API** | [Backend URL](#) |
+| **Live Backend API** | [Backend URL](https://demo-testing-f7asd4ewembxafff.koreacentral-01.azurewebsites.net/docs) |
 | **3-Minute Video Walkthrough** | [Google-Drive URL](#) |
 
 > ⚠️ **Note:** The backend runs on Azure App Service (Free Tier) which cold-starts after ~5 minutes of inactivity. The first API call may take 30-60 seconds. Subsequent requests are instant.
