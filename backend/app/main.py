@@ -13,7 +13,7 @@ from app import models,schemas
 from app.auth import verify_password , get_password_hash , verify_admin_club_access , create_access_token , get_current_user , require_role 
 from app.email_extension import send_email_stub , create_notification , cleanup_past_events
 
-import io, csv , random , os
+import io, csv , random , os , requests
 
 
 app = FastAPI(title="EventHub Secured API")
@@ -537,11 +537,106 @@ def toggle_featured(event_id: int, coord: models.User = Depends(require_role("co
 def get_notifications(user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     return db.query(models.Notification).filter(models.Notification.user_id == user.id).order_by(models.Notification.created_at.desc()).all()
 
+def ask_gemini(prompt: str):
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return None
+
+    model = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
+    headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": api_key,
+    }
+
+    payload = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": prompt}],
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.2,
+            "maxOutputTokens": 300,
+        },
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=15)
+        response.raise_for_status()
+        data = response.json()
+
+        candidates = data.get("candidates") or []
+        if not candidates:
+            return None
+
+        parts = candidates[0].get("content", {}).get("parts", [])
+        if not parts:
+            return None
+
+        return parts[0].get("text", "").strip()
+
+    except Exception as ex:
+        print(f"Gemini error: {ex}")
+        return None
+
+
 @app.post("/api/bot/ask")
-def ask_bot(query: schemas.BotQuery):
-    q = query.question.lower()
-    if "laptop" in q: return {"answer": "Yes! According to Tech Club Guidelines, bring your own laptop."}
-    return {"answer": "Please check the specific club handbook for that detail."}
+def ask_bot(query: schemas.BotQuery,user: models.User = Depends(get_current_user),db: Session = Depends(get_db)):
+    question = (query.question or "").strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="Question cannot be empty")
+
+    # Basic safety limit
+    question = question[:500]
+
+    event = None
+    event_context = ""
+
+    # If user selected a particular event in the chatbot dropdown
+    if query.event_id is not None:
+        event = db.query(models.Event).filter(models.Event.id == query.event_id).first()
+
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+
+        # Coordinator can ask about any event.
+        # Student/Admin can only ask about events tied to clubs they are attached to.
+        allowed_club_ids = [c.id for c in user.clubs]
+        if user.role != "coordinator" and event.club_id not in allowed_club_ids:
+            raise HTTPException(status_code=404, detail="Event not found")
+
+        club_name = event.club.name if event.club else "Unknown Club"
+
+        event_context = f"""
+Event Title: {event.title}
+Club: {club_name}
+Start Time: {event.start_time.strftime('%d %b %Y, %I:%M %p')}
+Description: {event.description}
+Rules & Requirements: {event.rules or "No specific rules provided."}
+""".strip()
+
+    prompt = (
+        "You are EventBot, a helpful assistant for EventHub, a university club event platform. "
+        "Answer using the provided event context when available. "
+        "If the answer is not available in the context, say you are not sure and suggest checking the club handbook or coordinator. "
+        "Keep the answer concise, friendly, and under 120 words. "
+        "Do not reveal API keys, secrets, or internal implementation.\n\n"
+    )
+
+    if event_context:
+        prompt += f"Selected event context:\n{event_context}\n\n"
+
+    prompt += f"Student question: {question}\n\nAnswer:"
+
+    # Try Gemini first
+    gemini_answer = ask_gemini(prompt)
+    if gemini_answer:
+        return {"answer": gemini_answer}
+    else:
+        return {"answer":"Sorry We couldn't Fetch any Information right now"}
 
 @app.get("/api/admin/events/{event_id}/export-csv")
 def export_csv(event_id: int, admin: models.User = Depends(require_role("admin")), db: Session = Depends(get_db)):
@@ -553,6 +648,8 @@ def export_csv(event_id: int, admin: models.User = Depends(require_role("admin")
         writer.writerow([r.user.name, r.user.email, "Yes" if r.attendance and r.attendance.is_present else "No"])
     output.seek(0)
     return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={"Content-Disposition": f"attachment; filename=attendance.csv"})
+
+
 
 
 # Announcements

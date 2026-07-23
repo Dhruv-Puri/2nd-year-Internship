@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, field_validator
 from datetime import datetime, timezone
-
+from typing import Optional
 
 # --- Auth & User ---
 class UserCreate(BaseModel):
@@ -107,3 +107,10 @@ class AnnouncementResponse(BaseModel):
 class OTPVerify(BaseModel):
     email: str
     otp: str
+
+
+
+# --- Bot-Query---
+class BotQuery(BaseModel):
+    question: str
+    event_id: Optional[int] = None
