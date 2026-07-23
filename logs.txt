@@ -145,3 +145,24 @@ The frontend index.html received an OTP verification overlay with error handling
 Dashboard themes were integrated using CSS variables mapped to existing layout classes. Hardcoded white backgrounds were replaced with theme-aware variables for cards, modals, and inputs. The theme selector was repositioned from a fixed overlay into the top bar’s header actions, aligning inline with notification buttons. Color palettes for ocean, forest, and sunset themes were softened to pastel backgrounds while retaining dark and light modes. Mobile responsiveness was updated to collapse the theme button into a circular icon, preserving all original dashboard functionality and structure.
 
 
+(18-07-26)
+Finalized the mini-extension notification pipeline using Azure Communication Services (ACS) to send real emails for RSVP confirmations, attendance receipts, and cron-triggered 24-hour reminders. Polished the EmailQuota guardrail to strictly enforce a 10 emails/day limit to prevent API abuse during live demos. Verified that the global frontend toggle successfully disables the email pipeline for demo environments, and ensured the three distinct dashboard views with role-based rendering and the EventBot are fully stable.
+
+
+
+(19-07-26)
+Focused on documentation and final architectural review. Wrote and finalized 3 Architecture Decision Records (ADRs) documenting key choices like the decoupled vanilla JS frontend, unified Azure PaaS hosting, and ACS for transactional emails. Updated the comprehensive README to ensure a reviewer can go from git clone to a running product in under 20 minutes. Reviewed the entire solution against Problem Statement J2 requirements, confirming all features, security guardrails, and free-tier constraints are perfectly met. The architecture now fully demonstrates strong engineering principles including environment-agnostic design and proper separation of concerns.
+
+
+(20-07-26)
+
+Dockerized the local development environment using docker-compose up to spin up the full stack (FastAPI, Postgres, and Nginx for the frontend) with a single command. Created the Dockerfile and docker-compose.yml to ensure environment-agnostic design and make onboarding seamless for anyone cloning the repo. Also swapped out the local Postgres setup for Neon PostgreSQL to serve as the free-tier cloud database for production, replacing the initial Azure PostgreSQL plan to strictly adhere to free-tier constraints. Tested in a Virtual Machine in a completely new isolated environment with docker and docker compose on ubuntu linux , successfully ran locally on VM.
+
+(21-07-26)
+
+Connected the CI/CD pipeline to Azure. Configured Azure App Service to pull the Docker image from GHCR and deploy the backend container. Set up Azure Storage Static Website hosting for the decoupled frontend. Implemented a config.js injection pattern in the GitHub Actions workflow so the frontend dynamically receives the correct production API URL via GitHub Secrets, allowing it to work across environments without hardcoded code changes.Also added the environment variable secrets to Azure Web App Configuration Interface.
+
+(22-07-26)
+
+Built out the CI/CD pipeline using GitHub Actions (.github/workflows/) to completely automate testing and deployment. Configured the workflow to automatically run the 20+ pytest suite on every push to main. Added steps to build the Docker image with built-in health checks and push it securely to GitHub Container Registry (GHCR). This ensures that no broken code ever reaches the production environment and validates the core CRUD and auth guardrails automatically.
+
