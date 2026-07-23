@@ -561,12 +561,41 @@ function renderNotifications(container) {
     }).join('');
 }
 
+
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatBotAnswer(text) {
+    return escapeHtml(text || '').replace(/\n/g, '<br>');
+}
+
 function renderChatbot(container) {
+    const botEvents = (state.events || []).filter(e => !e.attendance_submitted);
+
+    const eventOptions = botEvents.map(e => {
+        const title = escapeHtml(e.title);
+        const club = escapeHtml(e.club ? e.club.name : 'Club');
+        return `<option value="${e.id}">${title} (${club})</option>`;
+    }).join('');
+
     container.innerHTML = `
         <div class="chat-container">
-            <div class="chat-messages" id="chat-messages">
-                <div class="msg bot">👋 Hi there! I'm trained on the college handbook and all active club events. What do you want to know?</div>
+            <div style="padding: 1rem 1rem 0 1rem;">
+                <label style="margin-bottom: 0.35rem;">Choose event context</label>
+                <select id="bot-event">
+                    <option value="">General question (no event)</option>
+                    ${eventOptions}
+                </select>
             </div>
+
+            <div class="chat-messages" id="chat-messages">
+                <div class="msg bot">👋 Hi there! Choose a specific event if your question is about that event, otherwise ask a general question.</div>
+            </div>
+
             <div class="chat-input">
                 <input type="text" id="bot-input" placeholder="Ask a question..." onkeypress="if(event.key==='Enter') sendBotMsg()">
                 <button class="btn" onclick="sendBotMsg()"><i class="fas fa-paper-plane"></i></button>
@@ -577,21 +606,55 @@ function renderChatbot(container) {
 
 async function sendBotMsg() {
     const input = document.getElementById('bot-input');
-    const msg = input.value.trim(); 
+    const eventSelect = document.getElementById('bot-event');
+
+    const msg = input.value.trim();
     if (!msg) return;
-    
+
     const box = document.getElementById('chat-messages');
-    box.innerHTML += `<div class="msg user">${msg}</div>`; 
+
+    const selectedEventId = eventSelect ? eventSelect.value : "";
+    const selectedEventLabel = eventSelect && eventSelect.value
+        ? eventSelect.options[eventSelect.selectedIndex].text
+        : "";
+
+    const safeMsg = escapeHtml(msg);
+    const safeEventLabel = escapeHtml(selectedEventLabel);
+
+    box.innerHTML += `
+        <div class="msg user">
+            ${safeMsg}
+            ${safeEventLabel ? `<br><small>Event: ${safeEventLabel}</small>` : ''}
+        </div>
+    `;
+
     input.value = '';
     box.scrollTop = box.scrollHeight;
-    
+
     try {
-        const res = await authFetch('/api/bot/ask', { method: 'POST', body: JSON.stringify({ question: msg }) });
+        const payload = { question: msg };
+
+        if (selectedEventId) {
+            payload.event_id = parseInt(selectedEventId, 10);
+        }
+
+        const res = await authFetch('/api/bot/ask', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+
         const data = await res.json();
-        box.innerHTML += `<div class="msg bot">${data.answer}</div>`;
+
+        if (res.ok) {
+            box.innerHTML += `<div class="msg bot">${formatBotAnswer(data.answer)}</div>`;
+        } else {
+            box.innerHTML += `<div class="msg bot">${formatBotAnswer(data.detail || "Sorry, I could not answer that.")}</div>`;
+        }
+
     } catch(e) {
-        box.innerHTML += `<div class="msg bot">Sorry, The server is either busy or booting up right now please try again after few minutes.</div>`;
+        box.innerHTML += `<div class="msg bot">Sorry, the server is either busy or booting up right now. Please try again after a few minutes.</div>`;
     }
+
     box.scrollTop = box.scrollHeight;
 }
 
