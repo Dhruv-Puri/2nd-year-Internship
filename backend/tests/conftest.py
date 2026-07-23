@@ -11,6 +11,8 @@ os.environ["ALGORITHM"] = "HS256"
 os.environ["ACS_CONNECTION_STRING"] = "endpoint=https://test.communication.azure.com/;accesskey=dGVzdA=="
 os.environ["SENDER_EMAIL"] = "DoNotReply@test.com"
 os.environ["ALLOWED_ORIGINS"] = "*"
+os.environ["GEMINI_API_KEY"] = ""
+os.environ["GEMINI_MODEL"] = "test-model"
 
 import pytest
 from fastapi.testclient import TestClient

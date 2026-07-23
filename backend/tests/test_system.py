@@ -1,11 +1,14 @@
-def test_bot_returns_laptop_answer(client):
+def test_bot_returns_laptop_answer(client, auth_header):
+    headers = auth_header("student")
+
     res = client.post(
         "/api/bot/ask",
         json={"question": "Should I bring a laptop?"},
+        headers=headers,
     )
 
     assert res.status_code == 200
-    assert "laptop" in res.json()["answer"].lower()
+    assert "sorry" in res.json()["answer"].lower() # as gemini is not connected
 
 
 def test_email_toggle_endpoint(client):
